@@ -1,0 +1,18 @@
+[project]
+name = "pynanovna"
+version = "0.0.1"
+authors = [
+  { name="Teo Bergkvist", email="bergkvist.teo@protonmail.com" },
+]
+description = "A package to use a NanoVNA"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/PICC-Group/pynanovna"
+Issues = "https://github.com/PICC-Group/pynanovna/issues"
