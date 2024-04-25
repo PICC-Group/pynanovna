@@ -1,0 +1,202 @@
+import platform
+from collections import namedtuple
+from time import sleep
+
+import serial
+from serial.tools import list_ports
+from serial.tools.list_ports_common import ListPortInfo
+
+from .VNA import VNA
+from .AVNA import AVNA
+from .NanoVNA import NanoVNA
+from .NanoVNA_F import NanoVNA_F
+from .NanoVNA_F_V2 import NanoVNA_F_V2
+from .NanoVNA_H import NanoVNA_H
+from .NanoVNA_H4 import NanoVNA_H4
+from .NanoVNA_V2 import NanoVNA_V2
+from .TinySA import TinySA, TinySA_Ultra
+from .JNCRadio_VNA_3G import JNCRadio_VNA_3G
+from .SV4401A import SV4401A
+from .SV6301A import SV6301A
+from .Serial import drain_serial, Interface
+
+USBDevice = namedtuple("Device", "vid pid name")
+
+USBDEVICETYPES = (
+    USBDevice(0x0483, 0x5740, "NanoVNA"),
+    USBDevice(0x16C0, 0x0483, "AVNA"),
+    USBDevice(0x04B4, 0x0008, "S-A-A-2"),
+)
+RETRIES = 3
+TIMEOUT = 0.2
+WAIT = 0.05
+
+NAME2DEVICE = {
+    "S-A-A-2": NanoVNA_V2,
+    "AVNA": AVNA,
+    "H4": NanoVNA_H4,
+    "H": NanoVNA_H,
+    "F_V2": NanoVNA_F_V2,
+    "F": NanoVNA_F,
+    "NanoVNA": NanoVNA,
+    "tinySA": TinySA,
+    "tinySA_Ultra": TinySA_Ultra,
+    "JNCRadio": JNCRadio_VNA_3G,
+    "SV4401A": SV4401A,
+    "SV6301A": SV6301A,
+    "Unknown": NanoVNA,
+}
+
+
+# The USB Driver for NanoVNA V2 seems to deliver an
+# incompatible hardware info like:
+# 'PORTS\\VID_04B4&PID_0008\\DEMO'
+# This function will fix it.
+
+
+def _fix_v2_hwinfo(dev):
+    # if dev.hwid == r'PORTS\VID_04B4&PID_0008\DEMO':
+    if r"PORTS\VID_04B4&PID_0008" in dev.hwid:
+        dev.vid, dev.pid = 0x04B4, 0x0008
+    return dev
+
+
+def usb_typename(device: ListPortInfo) -> str:
+    return next(
+        (t.name for t in USBDEVICETYPES if device.vid == t.vid and device.pid == t.pid),
+        "",
+    )
+
+
+# Get list of interfaces with VNAs connected
+
+
+def get_interfaces(verbose=False) -> list[Interface]:
+    interfaces = []
+    # serial like usb interfaces
+    for d in list_ports.comports():
+        if platform.system() == "Windows" and d.vid is None:
+            d = _fix_v2_hwinfo(d)
+        if not (typename := usb_typename(d)):
+            continue
+        if verbose:
+            print(
+                "Found %s USB:(%04x:%04x) on port %s",
+                typename,
+                d.vid,
+                d.pid,
+                d.device,
+            )
+        iface = Interface("serial", typename)
+        iface.port = d.device
+        iface.open()
+        iface.comment = get_comment(iface)
+        iface.close()
+        interfaces.append(iface)
+
+    if verbose:
+        print("Interfaces: %s", interfaces)
+    return interfaces
+
+
+def get_portinfos(verbose=False) -> list[str]:
+    portinfos = []
+    # serial like usb interfaces
+    for d in list_ports.comports():
+        if verbose:
+            print("Found USB:(%04x:%04x) on port %s", d.vid, d.pid, d.device)
+        iface = Interface("serial", "DEBUG")
+        iface.port = d.device
+        iface.open()
+        version = detect_version(iface)
+        iface.close()
+        portinfos.append(version)
+    return portinfos
+
+
+def get_VNA(iface: Interface) -> VNA:
+    return NAME2DEVICE[iface.comment](iface)
+
+
+def get_comment(iface: Interface, verbose=False) -> str:
+    if verbose:
+        print("Finding correct VNA type...")
+    with iface.lock:
+        vna_version = detect_version(iface)
+
+    if vna_version == "v2":
+        return "S-A-A-2"
+    if verbose:
+        print("Finding firmware variant...")
+    info = get_info(iface)
+    for search, name in (
+        ("AVNA + Teensy", "AVNA"),
+        ("NanoVNA-H 4", "H4"),
+        ("NanoVNA-H", "H"),
+        ("NanoVNA-F_V2", "F_V2"),
+        ("NanoVNA-F", "F"),
+        ("NanoVNA", "NanoVNA"),
+        ("tinySA4", "tinySA_Ultra"),
+        ("tinySA", "tinySA"),
+        ("JNCRadio_VNA_3G", "JNCRadio"),
+        ("SV4401A", "SV4401A"),
+        ("SV6301A", "SV6301A"),
+    ):
+        if info.find(search) >= 0:
+            return name
+    if verbose:
+        print("Did not recognize NanoVNA type from firmware.")
+    return "Unknown"
+
+
+def detect_version(serial_port: serial.Serial, verbose=False) -> str:
+    data = ""
+    for i in range(RETRIES):
+        drain_serial(serial_port)
+        serial_port.write("\r".encode("ascii"))
+        # workaround for some UnicodeDecodeError ... repeat ;-)
+        drain_serial(serial_port)
+        serial_port.write("\r".encode("ascii"))
+        sleep(0.05)
+
+        data = serial_port.read(128).decode("ascii")
+        if data.startswith("ch> "):
+            return "v1"
+        # -H versions
+        if data.startswith("\r\nch> "):
+            return "vh"
+        if data.startswith("\r\n?\r\nch> "):
+            return "vh"
+        if data.startswith("2"):
+            return "v2"
+        if verbose:
+            print("Retry detection: %s", i + 1)
+    print("No VNA detected. Hardware responded to CR with: %s", data)
+    return ""
+
+
+def get_info(serial_port: serial.Serial, verbose=False) -> str:
+    for _ in range(RETRIES):
+        drain_serial(serial_port)
+        serial_port.write("info\r".encode("ascii"))
+        lines = []
+        retries = 0
+        while True:
+            line = serial_port.readline()
+            line = line.decode("ascii").strip()
+            if not line:
+                retries += 1
+                if retries > RETRIES:
+                    return ""
+                sleep(WAIT)
+                continue
+            if line == "info":  # suppress echo
+                continue
+            if line.startswith("ch>"):
+                if verbose:
+                    print("Needed retries: %s", retries)
+                break
+            lines.append(line)
+        if verbose:
+            print("Info output: %s", lines)
+        return "\n".join(lines)
