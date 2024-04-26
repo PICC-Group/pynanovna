@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pynanovna
-Version: 0.0.1
+Version: 0.0.2
 Summary: A package to use a NanoVNA
 Author-email: Teo Bergkvist <bergkvist.teo@protonmail.com>
 Project-URL: Homepage, https://github.com/PICC-Group/pynanovna
