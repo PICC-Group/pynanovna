@@ -1,6 +1,6 @@
-from .pynanovna import NanoVNAWorker
+from pynanovna import *
 
-worker = NanoVNAWorker(verbose=True)
+worker = pynanovna.NanoVNAWorker(verbose=True)
 
 datafile = False #  Set this to a path if you want to play a previously recorded file.
 
