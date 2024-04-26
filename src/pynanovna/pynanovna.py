@@ -7,6 +7,7 @@ from .RFTools import Datapoint
 from datetime import datetime
 import threading
 import csv
+from time import sleep
 
 
 class NanoVNAWorker:
@@ -101,6 +102,7 @@ class NanoVNAWorker:
         """
         if not data_file:
             self._stream_data()
+        sleep(2)
         try:
             if not data_file:
                 if self.playback_mode:
@@ -195,19 +197,20 @@ class NanoVNAWorker:
             if not filename.endswith(".csv"):
                 filename += ".csv"
             file_path = filename
-            old_data = None
+            old_data = [[Datapoint(1, 1.0, 1.0)]]
             counter = 0 #  Counter because NanoVNA sends out incorrect data the first few times.
             with open(file_path, mode="w", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow("Refl", " Thru", " Freq")
+                writer.writerow(["Refl", "Thru", "Freq"])
                 data_stream = self.stream_data()
                 for new_data in data_stream:
-                    if new_data != old_data:
-                        for data_index in range(len(new_data)):
-                            if (counter > skip_start):
-                                writer.writerow(new_data[0][data_index].z(), new_data[1][data_index].z(), new_data[0][data_index].freq)
-                        old_data = new_data
-                        counter += 1
+                    if new_data[0][0].im != old_data[0][0].im:
+                        counter += 1  # Increment counter when new_data is different
+                        if counter > skip_start:
+                            for data_index in range(len(new_data)):
+                                writer.writerow([new_data[0][data_index].z, new_data[1][data_index].z, new_data[0][data_index].freq])
+                    old_data = (new_data[0].copy(), new_data[1].copy()) # Update old_data every iteration to the latest data
+
         except Exception as e:
             print("An error occurred: ", e)
 
