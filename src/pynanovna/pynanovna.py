@@ -2,9 +2,10 @@ from .hardware import Hardware as hw
 from .Calibration import Calibration
 from .CalibrationGuide import CalibrationGuide
 from .SweepWorker import SweepWorker
+from .Touchstone import Touchstone
+from .RFTools import Datapoint
 from datetime import datetime
 import threading
-import numpy as np
 import csv
 
 
@@ -26,8 +27,9 @@ class NanoVNAWorker:
         if not self.playback_mode:
             self.vna = hw.get_VNA(self.iface)
             self.calibration = Calibration()
+            self.touchstone = Touchstone("./output") #  Fix this.
             self.worker = SweepWorker(
-                self.vna, self.calibration, verbose
+                self.vna, self.calibration, self.touchstone, verbose=verbose
             )
             self.CalibrationGuide = CalibrationGuide(
                 self.calibration, self.worker, verbose
@@ -140,7 +142,10 @@ class NanoVNAWorker:
                 data = f.readlines()
                 for i, line in enumerate(data):
                     if i != 0:
-                        yield [float(val) for val in line.split(",")]
+                        data_vals = [float(val) for val in line.split(",")]
+                        s11 = Datapoint(data_vals[-1], complex(data_vals[0]).real, complex(data_vals[0]).imag)
+                        s12 = Datapoint(data_vals[-1], complex(data_vals[1]).real, complex(data_vals[1]).imag)
+                        yield (s11, s12)
         except Exception as e:
             print(e)
 
@@ -168,38 +173,9 @@ class NanoVNAWorker:
         Returns:
             list: Real Reflection, Imaginary Reflection, Real Through, Imaginary Through, Frequency
         """
-        data_s11 = self.worker.data11
-        data_s21 = self.worker.data21
-        refl_re = []
-        refl_im = []
-        thru_re = []
-        thru_im = []
-        freq = []
-        for datapoint in data_s11:
-            refl_re.append(datapoint.re)
-            refl_im.append(datapoint.im)
-            freq.append(datapoint.freq)
-        for datapoint in data_s21:
-            thru_re.append(datapoint.re)
-            thru_im.append(datapoint.im)
-        return refl_re, refl_im, thru_re, thru_im, freq
+        return self.worker.data11, self.worker.data21
 
-    def magnitude(self, re_list, im_list):
-        """Function to get the magnitude and prepare for plotting.
-
-        Args:
-            re_list (list): List with real parts.
-            im_list (list): List with imaginary parts.
-
-        Returns:
-            list: List with the magnitude.
-        """
-        mag_list = []
-        for re, im in zip(re_list, im_list):
-            mag_list.append(10 * np.log10(np.sqrt(re**2 + im**2)))
-        return mag_list
-
-    def save_csv(self, filename, nr_sweeps=10, skip_start=5):
+    def save_csv(self, filename, skip_start=5):
         """Function to save the stream to a csv file.
 
         Args:
@@ -216,30 +192,24 @@ class NanoVNAWorker:
         try:
             if not isinstance(filename, str):
                 raise TypeError("Filename must be a string")
-
             if not filename.endswith(".csv"):
                 filename += ".csv"
             file_path = filename
             old_data = None
-            # Counter because NanoVNA sends out incorrect data the first few times
-            counter = 0
-            if self.verbose:
-                print("Starting to save...")
+            counter = 0 #  Counter because NanoVNA sends out incorrect data the first few times.
             with open(file_path, mode="w", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow("ReflRe", " ReflIm", " ThruRe", " ThruIm", " Freq")
+                writer.writerow("Refl", " Thru", " Freq")
                 data_stream = self.stream_data()
                 for new_data in data_stream:
                     if new_data != old_data:
                         for data_index in range(len(new_data)):
                             if (counter > skip_start):
-                                writer.writerow([new_data[i][data_index] for i in range(5)])
+                                writer.writerow(new_data[0][data_index].z(), new_data[1][data_index].z(), new_data[0][data_index].freq)
                         old_data = new_data
                         counter += 1
-                if self.verbose:
-                    print("Done!")
         except Exception as e:
-            print("An error occurred:", e)
+            print("An error occurred: ", e)
 
     def kill(self):
         """Disconnect the NanoVNA.

@@ -7,6 +7,7 @@ src/pynanovna/RFTools.py
 src/pynanovna/SITools.py
 src/pynanovna/Sweep.py
 src/pynanovna/SweepWorker.py
+src/pynanovna/Touchstone.py
 src/pynanovna/__init__.py
 src/pynanovna/example.py
 src/pynanovna/pynanovna.py
