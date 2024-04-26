@@ -1,12 +1,18 @@
 [project]
 name = "pynanovna"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
-  { name="Teo Bergkvist", email="bergkvist.teo@protonmail.com" },
+  { name = "Teo Bergkvist", email = "bergkvist.teo@protonmail.com" },
 ]
 description = "A package to use a NanoVNA"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+dependencies = [
+    "matplotlib >= 3.6.2",
+    "numpy >= 1.26.4",
+    "pyserial >= 3.5",
+    "scipy >= 1.13.0"
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

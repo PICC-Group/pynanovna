@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: pynanovna
-Version: 0.0.2
+Version: 0.0.3
 Summary: A package to use a NanoVNA
 Author-email: Teo Bergkvist <bergkvist.teo@protonmail.com>
 Project-URL: Homepage, https://github.com/PICC-Group/pynanovna
@@ -8,12 +8,19 @@ Project-URL: Issues, https://github.com/PICC-Group/pynanovna/issues
 Classifier: Programming Language :: Python :: 3
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Operating System :: OS Independent
-Requires-Python: >=3.8
+Requires-Python: >=3.9
 Description-Content-Type: text/markdown
 License-File: LICENCE
+Requires-Dist: matplotlib>=3.6.2
+Requires-Dist: numpy>=1.26.4
+Requires-Dist: pyserial>=3.5
+Requires-Dist: scipy>=1.13.0
 
 # pynanovna
 This is a python module for using a NanoVNA.
+
+## Installation
+Install with `pip install pynanovna` or `pip3 install pynanovna`
 
 ## History
 Originally this was the fork [nanovna-saver-headless](https://github.com/PICC-Group/nanovna-saver-headless) from [nanovna-saver](https://github.com/NanoVNA-Saver/nanovna-saver) but when that project no longer shared much code with the original we decided to create a new project.
