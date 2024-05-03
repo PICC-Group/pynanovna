@@ -115,18 +115,11 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
         response = input(
             """Calibration assistant,
             
-                This calibration assistant will help you create a calibration\n
-                in the NanoVNASaver application. It will sweep the\n
-                standards for you and guide you through the process.<br><br>\n
-                Before starting, ensure you have Open, Short and Load\n
-                standards available and the cables you wish to have\n
-                calibrated connected to the device.<br><br>\n
+                This calibration assistant will help you create a calibration in the NanoVNASaver application. It will sweep the standards for you and guide you through the process.\n
+                Before starting, ensure you have Open, Short and Load standards available and the cables you wish to have calibrated connected to the device.\n
                 Make sure sweep is NOT in continuous mode.\n
-                If you want a 2-port calibration, also have a through\n
-                connector on hand.<br><br>\n
-                <b>The best results are achieved by having the NanoVNA\n
-                calibrated on-device for the full span of interest and stored\n
-                in save slot 0 before starting.</b><br><br>\n\n
+                If you want a 2-port calibration, also have a through connector on hand.\n
+                The best results are achieved by having the NanoVNA calibrated on-device for the full span of interest and stored in save slot 0 before starting.\n\n
                 Once you are ready to proceed, press enter. (q to quit)."""
         )
 

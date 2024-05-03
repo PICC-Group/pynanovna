@@ -323,8 +323,7 @@ class Calibration:
             except ZeroDivisionError as exc:
                 self.isCalculated = False
                 print(
-                    "Division error - did you use the same measurement"
-                    " for two of short, open and load?"
+                    "Division error - did you use the same measurement for two of short, open and load?"
                 )
                 raise ValueError(
                     f"Two of short, open and load returned the same"

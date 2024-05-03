@@ -28,7 +28,7 @@ class NanoVNAWorker:
         if not self.playback_mode:
             self.vna = hw.get_VNA(self.iface)
             self.calibration = Calibration()
-            self.touchstone = Touchstone("./output") #  Fix this.
+            self.touchstone = Touchstone("./output")  #  Fix this.
             self.worker = SweepWorker(
                 self.vna, self.calibration, self.touchstone, verbose=verbose
             )
@@ -106,7 +106,9 @@ class NanoVNAWorker:
         try:
             if not data_file:
                 if self.playback_mode:
-                    print("Cannot stream data from NanoVNA in playback mode. Connect NanoVNA and restart.")
+                    print(
+                        "Cannot stream data from NanoVNA in playback mode. Connect NanoVNA and restart."
+                    )
                     return
                 stream = self._access_data()
             else:
@@ -145,8 +147,16 @@ class NanoVNAWorker:
                 for i, line in enumerate(data):
                     if i != 0:
                         data_vals = [float(val) for val in line.split(",")]
-                        s11 = Datapoint(data_vals[-1], complex(data_vals[0]).real, complex(data_vals[0]).imag)
-                        s12 = Datapoint(data_vals[-1], complex(data_vals[1]).real, complex(data_vals[1]).imag)
+                        s11 = Datapoint(
+                            data_vals[-1],
+                            complex(data_vals[0]).real,
+                            complex(data_vals[0]).imag,
+                        )
+                        s12 = Datapoint(
+                            data_vals[-1],
+                            complex(data_vals[1]).real,
+                            complex(data_vals[1]).imag,
+                        )
                         yield (s11, s12)
         except Exception as e:
             print(e)
@@ -198,7 +208,7 @@ class NanoVNAWorker:
                 filename += ".csv"
             file_path = filename
             old_data = [[Datapoint(1, 1.0, 1.0)]]
-            counter = 0 #  Counter because NanoVNA sends out incorrect data the first few times.
+            counter = 0  #  Counter because NanoVNA sends out incorrect data the first few times.
             with open(file_path, mode="w", newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(["Refl", "Thru", "Freq"])
@@ -208,8 +218,17 @@ class NanoVNAWorker:
                         counter += 1  # Increment counter when new_data is different
                         if counter > skip_start:
                             for data_index in range(len(new_data)):
-                                writer.writerow([new_data[0][data_index].z, new_data[1][data_index].z, new_data[0][data_index].freq])
-                    old_data = (new_data[0].copy(), new_data[1].copy()) # Update old_data every iteration to the latest data
+                                writer.writerow(
+                                    [
+                                        new_data[0][data_index].z,
+                                        new_data[1][data_index].z,
+                                        new_data[0][data_index].freq,
+                                    ]
+                                )
+                    old_data = (
+                        new_data[0].copy(),
+                        new_data[1].copy(),
+                    )  # Update old_data every iteration to the latest data
 
         except Exception as e:
             print("An error occurred: ", e)

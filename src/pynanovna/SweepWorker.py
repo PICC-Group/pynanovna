@@ -10,7 +10,7 @@ def truncate(values: list[list[tuple]], count: int, verbose=False) -> list[list[
     """truncate drops extrema from data list if averaging is active"""
     keep = len(values) - count
     if verbose:
-        print("Truncating from %d values to %d", len(values), keep)
+        print(f"Truncating from {len(values)} values to {keep}")
     if count < 1 or keep < 1:
         if verbose:
             print("Not doing illegal truncate")
@@ -56,7 +56,7 @@ class SweepWorker:
         try:
             self._run()
         except BaseException as exc:
-            print("%s", exc)
+            print(exc)
             print(f"ERROR during sweep\n\nStopped\n\n{exc}")
             if self.verbose:
                 raise exc
@@ -85,7 +85,7 @@ class SweepWorker:
             start = sweep.start
             end = sweep.end
             if self.verbose:
-                print("Resetting NanoVNA sweep to full range: %d to %d", start, end)
+                print(f"Resetting NanoVNA sweep to full range: {start} to {end}")
             self.vna.resetSweep(start, end)
 
         self.percentage = 100
@@ -104,7 +104,7 @@ class SweepWorker:
         while True:
             for i in range(sweep.segments):
                 if self.verbose:
-                    print("Sweep segment no %d", i)
+                    print(f"Sweep segment no {i}")
                 if not self.running:
                     if self.verbose:
                         print("Stopping sweeping as signalled")
@@ -135,7 +135,7 @@ class SweepWorker:
     def updateData(self, frequencies, values11, values21, index):
         # Update the data from (i*101) to (i+1)*101
         if self.verbose:
-            print("Calculating data and inserting in existing data at index %d", index)
+            print(f"Calculating data and inserting in existing data at index {index}")
         offset = self.sweep.points * index
 
         raw_data11 = [
@@ -149,7 +149,7 @@ class SweepWorker:
 
         data11, data21 = self.applyCalibration(raw_data11, raw_data21)
         if self.verbose:
-            print("update Freqs: %s, Offset: %s", len(frequencies), offset)
+            print(f"update Freqs: {len(frequencies)}, Offset: {offset}")
         for i in range(len(frequencies)):
             self.data11[offset + i] = data11[i]
             self.data21[offset + i] = data21[i]
@@ -158,9 +158,7 @@ class SweepWorker:
 
         if self.verbose:
             print(
-                "Saving data to application (%d and %d points)",
-                len(self.data11),
-                len(self.data21),
+                f"Saving data to application ({len(self.data11)} and {len(self.data21)} points)"
             )
         self.saveData(self.data11, self.data21)
 
@@ -201,7 +199,7 @@ class SweepWorker:
         values21 = []
         freq = []
         if self.verbose:
-            print("Reading from %d to %d. Averaging %d values", start, stop, averages)
+            print(f"Reading from {start} to {stop}. Averaging {averages} values")
         for i in range(averages):
             if not self.running:
                 if self.verbose:
@@ -212,7 +210,7 @@ class SweepWorker:
                     print("Stop during average. Discarding sweep result.")
                 return [], [], []
             if self.verbose:
-                print("Reading average no %d / %d", i + 1, averages)
+                print(f"Reading average no {i + 1} / {averages}")
             retry = 0
             tmp11 = []
             tmp21 = []
@@ -222,7 +220,7 @@ class SweepWorker:
                 freq, tmp11, tmp21 = self.readSegment(start, stop)
                 if retry > 1:
                     if self.verbose:
-                        print("retry %s readSegment(%s,%s)", retry, start, stop)
+                        print(f"retry {retry} readSegment({start}, {stop})")
                     sleep(0.5)
             values11.append(tmp11)
             values21.append(tmp21)
@@ -234,12 +232,12 @@ class SweepWorker:
         truncates = self.sweep.properties.averages[1]
         if truncates > 0 and averages > 1:
             if self.verbose:
-                print("Truncating %d values by %d", len(values11), truncates)
+                print(f"Truncating {len(values11)} values by {truncates}")
             values11 = truncate(values11, truncates)
             values21 = truncate(values21, truncates)
 
         if self.verbose:
-            print("Averaging %d values", len(values11))
+            print(f"Averaging {len(values11)} values")
         values11 = np.average(values11, 0).tolist()
         values21 = np.average(values21, 0).tolist()
 
@@ -247,12 +245,12 @@ class SweepWorker:
 
     def readSegment(self, start, stop):
         if self.verbose:
-            print("Setting sweep range to %d to %d", start, stop)
+            print(f"Setting sweep range to {start} to {stop}")
         self.vna.setSweep(start, stop)
 
         frequencies = self.vna.readFrequencies()
         if self.verbose:
-            print("Read %s frequencies", len(frequencies))
+            print(f"Read {len(frequencies)} frequencies")
         values11 = self.readData("data 0")
         values21 = self.readData("data 1")
         if not len(frequencies) == len(values11) == len(values21):
@@ -263,7 +261,7 @@ class SweepWorker:
 
     def readData(self, data):
         if self.verbose:
-            print("Reading %s", data)
+            print("Reading ", data)
         done = False
         returndata = []
         count = 0
@@ -272,7 +270,7 @@ class SweepWorker:
             returndata = []
             tmpdata = self.vna.readValues(data)
             if self.verbose:
-                print("Read %d values", len(tmpdata))
+                print(f"Read {len(tmpdata)} values")
             for d in tmpdata:
                 a, b = d.split(" ")
                 try:
@@ -280,28 +278,26 @@ class SweepWorker:
                         abs(float(a)) > 9.5 or abs(float(b)) > 9.5
                     ):
                         if self.verbose:
-                            print("Got a non plausible data value: (%s)", d)
+                            print("Got a non plausible data value: ", d)
                         done = False
                         break
                     returndata.append((float(a), float(b)))
                 except ValueError as exc:
-                    print("An exception occurred reading %s: %s", data, exc)
+                    print(f"An exception occurred reading {data}: {exc}", data, exc)
                     done = False
             if not done:
                 if self.verbose:
-                    print("Re-reading %s", data)
+                    print("Re-reading ", data)
                 sleep(0.2)
                 count += 1
                 if count == 5:
                     if self.verbose:
-                        print("Tried and failed to read %s %d times.", data, count)
+                        print(f"Tried and failed to read {data} {count} times.")
                     if self.verbose:
                         print("trying to reconnect")
                     self.vna.reconnect()
                 if count >= 10:
-                    print(
-                        "Tried and failed to read %s %d times. Giving up.", data, count
-                    )
+                    print(f"Tried and failed to read {data} {count} times. Giving up.")
                     raise IOError(
                         f"Failed reading {data} {count} times.\n"
                         f"Data outside expected valid ranges,"
