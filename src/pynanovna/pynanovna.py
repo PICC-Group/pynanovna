@@ -131,33 +131,38 @@ class NanoVNAWorker:
         self.worker_thread = threading.Thread(target=self.worker.run)
         self.worker_thread.start()
 
-    def _csv_streamer(self, filename, data_points=5):
+    def _csv_streamer(self, filename, sweepdivider="Sweepno"):
         """Stream previously recorded data from a csv file.
 
         Args:
             filename (string): Path to the csv file.
-            data_points (int): Number of lines that each sweep is stored as. Defaults to 5.
+            sweepdivider (string): Used to identify where sweeps end and start in the csv file.
 
         Yields:
-            list: [refl_re, refl_im, thru_re, thru_im, freq]
+            tuple: ([s11], [s21])
         """
         try:
             with open(filename) as f:
                 data = f.readlines()
+                package = ([], [])
                 for i, line in enumerate(data):
                     if i != 0:
-                        data_vals = [float(val) for val in line.split(",")]
-                        s11 = Datapoint(
+                        if sweepdivider in line:
+                            if package != ([], []):
+                                yield package
+                            package = ([], [])
+                            continue
+                        data_vals = [complex(val) for val in line.split(",")]
+                        package[0].append(Datapoint(
                             data_vals[-1],
-                            complex(data_vals[0]).real,
-                            complex(data_vals[0]).imag,
-                        )
-                        s12 = Datapoint(
+                            data_vals[0].real,
+                            data_vals[0].imag,
+                        ))
+                        package[1].append(Datapoint(
                             data_vals[-1],
-                            complex(data_vals[1]).real,
-                            complex(data_vals[1]).imag,
-                        )
-                        yield (s11, s12)
+                            data_vals[1].real,
+                            data_vals[1].imag,
+                        ))
         except Exception as e:
             print(e)
 
@@ -167,7 +172,6 @@ class NanoVNAWorker:
         Yields:
             list: List of data from the latest sweep.
         """
-        # Access data while the worker is running
         while self.worker.running:
             yield self._get_data()
 
@@ -187,7 +191,7 @@ class NanoVNAWorker:
         """
         return self.worker.data11, self.worker.data21
 
-    def save_csv(self, filename, skip_start=5):
+    def save_csv(self, filename, skip_start=5, sweepdivider="Sweepno"):
         """Function to save the stream to a csv file.
 
         Args:
@@ -215,20 +219,24 @@ class NanoVNAWorker:
                 data_stream = self.stream_data()
                 for new_data in data_stream:
                     if new_data[0][0].im != old_data[0][0].im:
+                        writer.writerow([sweepdivider, counter])
                         counter += 1  # Increment counter when new_data is different
                         if counter > skip_start:
-                            for data_index in range(len(new_data)):
+                            for data_index in range(len(new_data[0])):
                                 writer.writerow(
                                     [
-                                        new_data[0][data_index].z,
-                                        new_data[1][data_index].z,
-                                        new_data[0][data_index].freq,
+                                        new_data[:][0][data_index].z,
+                                        new_data[:][1][data_index].z,
+                                        new_data[:][0][data_index].freq,
                                     ]
                                 )
                     old_data = (
                         new_data[0].copy(),
                         new_data[1].copy(),
                     )  # Update old_data every iteration to the latest data
+
+        except KeyboardInterrupt:
+            return
 
         except Exception as e:
             print("An error occurred: ", e)
