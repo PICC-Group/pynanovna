@@ -116,6 +116,9 @@ class NanoVNAWorker:
 
             for data in stream:
                 yield data  # Yield each piece of data as it comes
+
+        except KeyboardInterrupt:
+            self._stop_worker()
         except Exception as e:
             if self.verbose:
                 print("Exception in data stream: ", e)
@@ -154,15 +157,17 @@ class NanoVNAWorker:
                             continue
                         data_vals = [complex(val) for val in line.split(",")]
                         package[0].append(Datapoint(
-                            data_vals[-1],
+                            data_vals[-1].real,
                             data_vals[0].real,
                             data_vals[0].imag,
                         ))
                         package[1].append(Datapoint(
-                            data_vals[-1],
+                            data_vals[-1].real,
                             data_vals[1].real,
                             data_vals[1].imag,
                         ))
+        except KeyboardInterrupt:
+            return
         except Exception as e:
             print(e)
 

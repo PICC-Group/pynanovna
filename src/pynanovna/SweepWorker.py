@@ -99,7 +99,7 @@ class SweepWorker:
             sweep.properties.averages[0] if sweep.properties.mode == "AVERAGE" else 1
         )
         if self.verbose:
-            print("%d averages", averages)
+            print("Averages: ", averages)
 
         while True:
             for i in range(sweep.segments):
@@ -130,7 +130,7 @@ class SweepWorker:
             self.rawData11.append(Datapoint(freq, 0.0, 0.0))
             self.rawData21.append(Datapoint(freq, 0.0, 0.0))
         if self.verbose:
-            print("Init data length: %s", len(self.data11))
+            print("Init data length: ", len(self.data11))
 
     def updateData(self, frequencies, values11, values21, index):
         # Update the data from (i*101) to (i+1)*101
