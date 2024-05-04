@@ -9,7 +9,7 @@ Install with `pip install pynanovna` or `pip3 install pynanovna`.
 import pynanovna
 
 worker = pynanovna.NanoVNAWorker()
-stream = worker.stream_data(datafile)
+stream = worker.stream_data()
 for sweep in stream:
     print(sweep)
 ```
