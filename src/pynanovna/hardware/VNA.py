@@ -183,7 +183,7 @@ class VNA:
     def readValues(self, value) -> list[str]:
         if self.verbose:
             print("VNA reading %s", value)
-        result = list(self.exec_command(value))
+        result = list(self.exec_command(value, wait=0))
         if self.verbose:
             print("VNA done reading %s (%d values)", value, len(result))
         return result

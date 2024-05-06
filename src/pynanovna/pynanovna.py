@@ -39,6 +39,7 @@ class NanoVNAWorker:
                 print("VNA is connected: ", self.vna.connected())
                 print("Firmware: ", self.vna.readFirmware())
                 print("Features: ", self.vna.read_features())
+                print("Version", self.vna.name)
 
     def calibrate(self, savefile=None, load_file=False):
         """Run the calibration guide and calibrate the NanoVNA.
@@ -73,6 +74,8 @@ class NanoVNAWorker:
             print("Cannot set sweep in playback mode. Connect NanoVNA and restart.")
             return
         self.worker.sweep.update(start, stop, segments, points)
+        self.worker.init_data()
+        self.vna.datapoints = points
         if self.verbose:
             print(
                 "Sweep set from "

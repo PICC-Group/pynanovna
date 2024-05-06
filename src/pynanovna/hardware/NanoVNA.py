@@ -91,7 +91,7 @@ class NanoVNA(VNA):
         return [
             int(line)
             for line in self.exec_command(
-                f"scan {self.start} {self.stop} {self.datapoints} 0b001"
+                f"scan {self.start} {self.stop} {self.datapoints} 0b001", wait=0
             )
         ]
 
@@ -105,7 +105,7 @@ class NanoVNA(VNA):
         if value == "data 0":
             self._sweepdata = []
             for line in self.exec_command(
-                f"scan {self.start} {self.stop} {self.datapoints} 0b110"
+                f"scan {self.start} {self.stop} {self.datapoints} 0b110", wait=0
             ):
                 data = line.split()
                 self._sweepdata.append((f"{data[0]} {data[1]}", f"{data[2]} {data[3]}"))

@@ -137,7 +137,6 @@ class SweepWorker:
         if self.verbose:
             print(f"Calculating data and inserting in existing data at index {index}")
         offset = self.sweep.points * index
-
         raw_data11 = [
             Datapoint(freq, values11[i][0], values11[i][1])
             for i, freq in enumerate(frequencies)
