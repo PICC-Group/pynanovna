@@ -45,8 +45,8 @@ class NanoVNAWorker:
         """Run the calibration guide and calibrate the NanoVNA.
 
         Args:
-            savefile (path): Path to save the calibration. Defaults to None.
             load_file (bool, optional): Path to existing calibration. Defaults to False.
+            savefile (path): Path to save the calibration. Defaults to None.
         """
         if self.playback_mode:
             print("Cannot calibrate in playback mode. Connect NanoVNA and restart.")
