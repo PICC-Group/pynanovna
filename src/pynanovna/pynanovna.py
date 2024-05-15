@@ -41,7 +41,7 @@ class NanoVNAWorker:
                 print("Features: ", self.vna.read_features())
                 print("Version", self.vna.name)
 
-    def calibrate(self, savefile=None, load_file=False):
+    def calibrate(self, load_file=False, savefile=None,):
         """Run the calibration guide and calibrate the NanoVNA.
 
         Args:
