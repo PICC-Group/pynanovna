@@ -104,9 +104,6 @@ class NanoVNAWorker:
         Yields:
             list: Yields a list of data when new data is available.
         """
-        if not data_file:
-            self._stream_data()
-        sleep(start_delay)
         try:
             if not data_file:
                 if self.playback_mode:
@@ -114,6 +111,10 @@ class NanoVNAWorker:
                         "Cannot stream data from NanoVNA in playback mode. Connect NanoVNA and restart."
                     )
                     return
+                
+                self._stream_data()
+                sleep(start_delay)
+
                 stream = self._access_data()
             else:
                 stream = self._csv_streamer(data_file)
