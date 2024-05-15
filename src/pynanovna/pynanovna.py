@@ -94,18 +94,19 @@ class NanoVNAWorker:
         self.worker.run()
         return self._get_data()
 
-    def stream_data(self, data_file=False):
+    def stream_data(self, data_file=False, start_delay=2.0):
         """Creates a data stream from the continuous sweeping. (Or a previously recorded file.)
 
         Args:
             data_file (string): Path to a previously recorded csv file to stream from. Defaults to False.
+            start_delay (float): Time to wait for the stream to start before yielding values.
 
         Yields:
             list: Yields a list of data when new data is available.
         """
         if not data_file:
             self._stream_data()
-        sleep(2)
+        sleep(start_delay)
         try:
             if not data_file:
                 if self.playback_mode:
@@ -258,7 +259,8 @@ class NanoVNAWorker:
         if self.playback_mode:
             print("Cannot kill in playback mode. Connect NanoVNA and restart.")
             return
-        self._stop_worker()
+        if self.worker.running:
+            self._stop_worker()
         self.vna.disconnect()
         if self.vna.connected():
             raise Exception("The VNA was not successfully disconnected.")
