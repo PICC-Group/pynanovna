@@ -51,9 +51,10 @@ def plot(stream):
 
         except KeyboardInterrupt:
             return
-        
+
         except Exception as e:
             print("Error in plot: ", e)
+
 
 def polar(stream, normalize=False):
     plt.ion()
@@ -89,8 +90,14 @@ def polar(stream, normalize=False):
                         first_s11, first_s21 = s11[0], s21[0]
                         first_phase1, first_phase2 = theta1[0], theta2[0]
 
-                        ax[0].set_ylim(min([gain - first_s11 for gain in s11]) * 10, max([gain - first_s11 for gain in s11]) * 10)
-                        ax[1].set_ylim(min([gain - first_s21 for gain in s21]) * 10, max([gain - first_s21 for gain in s21]) * 10)
+                        ax[0].set_ylim(
+                            min([gain - first_s11 for gain in s11]) * 10,
+                            max([gain - first_s11 for gain in s11]) * 10,
+                        )
+                        ax[1].set_ylim(
+                            min([gain - first_s21 for gain in s21]) * 10,
+                            max([gain - first_s21 for gain in s21]) * 10,
+                        )
 
                     first_data = False
 
@@ -109,6 +116,6 @@ def polar(stream, normalize=False):
 
         except KeyboardInterrupt:
             return
-        
+
         except Exception as e:
             print("Error in plot: ", e)

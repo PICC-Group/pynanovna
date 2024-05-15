@@ -41,7 +41,11 @@ class NanoVNAWorker:
                 print("Features: ", self.vna.read_features())
                 print("Version", self.vna.name)
 
-    def calibrate(self, load_file=False, savefile=None,):
+    def calibrate(
+        self,
+        load_file=False,
+        savefile=None,
+    ):
         """Run the calibration guide and calibrate the NanoVNA.
 
         Args:
@@ -111,7 +115,7 @@ class NanoVNAWorker:
                         "Cannot stream data from NanoVNA in playback mode. Connect NanoVNA and restart."
                     )
                     return
-                
+
                 self._stream_data()
                 sleep(start_delay)
 
@@ -161,16 +165,20 @@ class NanoVNAWorker:
                             package = ([], [])
                             continue
                         data_vals = [complex(val) for val in line.split(",")]
-                        package[0].append(Datapoint(
-                            data_vals[-1].real,
-                            data_vals[0].real,
-                            data_vals[0].imag,
-                        ))
-                        package[1].append(Datapoint(
-                            data_vals[-1].real,
-                            data_vals[1].real,
-                            data_vals[1].imag,
-                        ))
+                        package[0].append(
+                            Datapoint(
+                                data_vals[-1].real,
+                                data_vals[0].real,
+                                data_vals[0].imag,
+                            )
+                        )
+                        package[1].append(
+                            Datapoint(
+                                data_vals[-1].real,
+                                data_vals[1].real,
+                                data_vals[1].imag,
+                            )
+                        )
         except KeyboardInterrupt:
             return
         except Exception as e:
