@@ -174,7 +174,7 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
             self.cal_save("open")
             self.nextStep = 2
             response = input(
-                """Calibrate load.\nPlease connect the "load" standard to port 0 of the NanoVNA.\n\nPress Ok when you are ready to continue. (q to quit)."""
+                """Calibrate load.\nPlease connect the "load" standard to port 0 of the NanoVNA.\n\nPress enter when you are ready to continue. (q to quit)."""
             )
 
             if response.lower() == "q":
@@ -213,7 +213,7 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
             self.cal_save("isolation")
             self.nextStep = 4
             response = input(
-                """Calibrate through.\nPlease connect the "through" standard between port 0 and port 1 of the NanoVNA.\n\nPress Ok when you are ready to continue. (q to quit)."""
+                """Calibrate through.\nPlease connect the "through" standard between port 0 and port 1 of the NanoVNA.\n\nPress enter when you are ready to continue. (q to quit)."""
             )
 
             if response.lower() == "q":
