@@ -8,7 +8,7 @@ from datetime import datetime
 import threading
 import csv
 from time import sleep
-
+import builtins
 
 class NanoVNAWorker:
     def __init__(self, vna_index=0, verbose=False):
@@ -18,6 +18,8 @@ class NanoVNAWorker:
             vna_index (int): Number of NanoVNAs to connect, at the moment multiple VNAs are not supported. Defaults to 0.
             verbose (bool): Print information. Defaults to False.
         """
+        if builtins.__sphinx_build__:
+            exit()
         self.verbose = verbose
         self.playback_mode = False
         try:
@@ -270,6 +272,7 @@ class NanoVNAWorker:
             return
         if self.worker.running:
             self._stop_worker()
+        
         self.vna.disconnect()
         if self.vna.connected():
             raise Exception("The VNA was not successfully disconnected.")

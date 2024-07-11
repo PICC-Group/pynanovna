@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pynanovna.SweepWorker &mdash; pynanovna 0.0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            pynanovna
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">Home page</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../_autosummary/pynanovna.html">API reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pynanovna</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">pynanovna.SweepWorker</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pynanovna.SweepWorker</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">from</span> <span class="nn">.RFTools</span> <span class="kn">import</span> <span class="n">corr_att_data</span>
+<span class="kn">from</span> <span class="nn">.Sweep</span> <span class="kn">import</span> <span class="n">Sweep</span>
+<span class="kn">from</span> <span class="nn">.RFTools</span> <span class="kn">import</span> <span class="n">Datapoint</span>
+
+
+<div class="viewcode-block" id="truncate">
+<a class="viewcode-back" href="../../_autosummary/pynanovna.SweepWorker.truncate.html#pynanovna.SweepWorker.truncate">[docs]</a>
+<span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]],</span> <span class="n">count</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;truncate drops extrema from data list if averaging is active&quot;&quot;&quot;</span>
+    <span class="n">keep</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">-</span> <span class="n">count</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Truncating from </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="si">}</span><span class="s2"> values to </span><span class="si">{</span><span class="n">keep</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">count</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">keep</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Not doing illegal truncate&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">values</span>
+    <span class="n">truncated</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">valueset</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">():</span>
+        <span class="n">avg</span> <span class="o">=</span> <span class="nb">complex</span><span class="p">(</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">valueset</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">truncated</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="nb">sorted</span><span class="p">(</span><span class="n">valueset</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">avg</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="nb">complex</span><span class="p">(</span><span class="o">*</span><span class="n">v</span><span class="p">)))[:</span><span class="n">keep</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">truncated</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="SweepWorker">
+<a class="viewcode-back" href="../../_autosummary/pynanovna.SweepWorker.SweepWorker.html#pynanovna.SweepWorker.SweepWorker">[docs]</a>
+<span class="k">class</span> <span class="nc">SweepWorker</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vna</span><span class="p">,</span> <span class="n">calibration</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initializing SweepWorker&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span> <span class="o">=</span> <span class="n">Sweep</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">percentage</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data11</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data21</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rawData11</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rawData21</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vna</span> <span class="o">=</span> <span class="n">vna</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span> <span class="o">=</span> <span class="n">calibration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_data</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_message</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">offsetDelay</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataLock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s21att</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">def</span> <span class="nf">saveData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data11</span><span class="p">,</span> <span class="n">data21</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataLock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">s11</span> <span class="o">=</span> <span class="n">data11</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">s21</span> <span class="o">=</span> <span class="n">data21</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">s21att</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">s21</span> <span class="o">=</span> <span class="n">corr_att_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">s21</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">s21att</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_run</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR during sweep</span><span class="se">\n\n</span><span class="s2">Stopped</span><span class="se">\n\n</span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">exc</span>
+
+    <span class="k">def</span> <span class="nf">_run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Initializing SweepWorker&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">vna</span><span class="o">.</span><span class="n">connected</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Attempted to run without being connected to the NanoVNA&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">percentage</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">sweep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">sweep</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="p">:</span>  <span class="c1"># parameters changed</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span> <span class="o">=</span> <span class="n">sweep</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_data</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run_loop</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">sweep</span><span class="o">.</span><span class="n">segments</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">sweep</span><span class="o">.</span><span class="n">start</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">sweep</span><span class="o">.</span><span class="n">end</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resetting NanoVNA sweep to full range: </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vna</span><span class="o">.</span><span class="n">resetSweep</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">percentage</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sweep is finished.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">_run_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sweep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span>
+        <span class="n">averages</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">sweep</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">averages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">sweep</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;AVERAGE&quot;</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Averages: &quot;</span><span class="p">,</span> <span class="n">averages</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sweep</span><span class="o">.</span><span class="n">segments</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sweep segment no </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Stopping sweeping as signalled&quot;</span><span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="n">start</span><span class="p">,</span> <span class="n">stop</span> <span class="o">=</span> <span class="n">sweep</span><span class="o">.</span><span class="n">get_index_range</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+                <span class="n">freq</span><span class="p">,</span> <span class="n">values11</span><span class="p">,</span> <span class="n">values21</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readAveragedSegment</span><span class="p">(</span>
+                    <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">averages</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">percentage</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">/</span> <span class="n">sweep</span><span class="o">.</span><span class="n">segments</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">updateData</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">values11</span><span class="p">,</span> <span class="n">values21</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">sweep</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">mode</span> <span class="o">!=</span> <span class="s2">&quot;CONTINOUS&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+                <span class="k">break</span>
+
+    <span class="k">def</span> <span class="nf">init_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data11</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data21</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rawData11</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rawData21</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">freq</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">get_frequencies</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data11</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Datapoint</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data21</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Datapoint</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rawData11</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Datapoint</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rawData21</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Datapoint</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Init data length: &quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data11</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">updateData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">values11</span><span class="p">,</span> <span class="n">values21</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="c1"># Update the data from (i*101) to (i+1)*101</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Calculating data and inserting in existing data at index </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">points</span> <span class="o">*</span> <span class="n">index</span>
+        <span class="n">raw_data11</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Datapoint</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">values11</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">values11</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">freq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">raw_data21</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Datapoint</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span> <span class="n">values21</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">values21</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">freq</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">data11</span><span class="p">,</span> <span class="n">data21</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">applyCalibration</span><span class="p">(</span><span class="n">raw_data11</span><span class="p">,</span> <span class="n">raw_data21</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;update Freqs: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span><span class="si">}</span><span class="s2">, Offset: </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data11</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">data11</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data21</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">data21</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rawData11</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_data11</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rawData21</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">raw_data21</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Saving data to application (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data11</span><span class="p">)</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data21</span><span class="p">)</span><span class="si">}</span><span class="s2"> points)&quot;</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">saveData</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data11</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data21</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">applyCalibration</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">raw_data11</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">],</span> <span class="n">raw_data21</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">]]:</span>
+        <span class="n">data11</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">data21</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Datapoint</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">isCalculated</span><span class="p">:</span>
+            <span class="n">data11</span> <span class="o">=</span> <span class="n">raw_data11</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">data21</span> <span class="o">=</span> <span class="n">raw_data21</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">isValid1Port</span><span class="p">():</span>
+            <span class="n">data11</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">correct11</span><span class="p">(</span><span class="n">dp</span><span class="p">)</span> <span class="k">for</span> <span class="n">dp</span> <span class="ow">in</span> <span class="n">raw_data11</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data11</span> <span class="o">=</span> <span class="n">raw_data11</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">isValid2Port</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">counter</span><span class="p">,</span> <span class="n">dp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">raw_data21</span><span class="p">):</span>
+                <span class="n">dp11</span> <span class="o">=</span> <span class="n">raw_data11</span><span class="p">[</span><span class="n">counter</span><span class="p">]</span>
+                <span class="n">data21</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">correct21</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span> <span class="n">dp11</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data21</span> <span class="o">=</span> <span class="n">raw_data21</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">offsetDelay</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data11</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">correct_delay</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">offsetDelay</span><span class="p">,</span> <span class="n">reflect</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">dp</span> <span class="ow">in</span> <span class="n">data11</span>
+            <span class="p">]</span>
+            <span class="n">data21</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">calibration</span><span class="o">.</span><span class="n">correct_delay</span><span class="p">(</span><span class="n">dp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">offsetDelay</span><span class="p">)</span> <span class="k">for</span> <span class="n">dp</span> <span class="ow">in</span> <span class="n">data21</span>
+            <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">data11</span><span class="p">,</span> <span class="n">data21</span>
+
+    <span class="k">def</span> <span class="nf">readAveragedSegment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">averages</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">values11</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">values21</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">freq</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reading from </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">stop</span><span class="si">}</span><span class="s2">. Averaging </span><span class="si">{</span><span class="n">averages</span><span class="si">}</span><span class="s2"> values&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">averages</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Stopping averaging as signalled.&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">averages</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Stop during average. Discarding sweep result.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reading average no </span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">averages</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">retry</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">tmp11</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tmp21</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">tmp11</span> <span class="ow">and</span> <span class="n">retry</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">retry</span><span class="p">)</span>
+                <span class="n">retry</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">freq</span><span class="p">,</span> <span class="n">tmp11</span><span class="p">,</span> <span class="n">tmp21</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readSegment</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">retry</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;retry </span><span class="si">{</span><span class="n">retry</span><span class="si">}</span><span class="s2"> readSegment(</span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">stop</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                    <span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="n">values11</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp11</span><span class="p">)</span>
+            <span class="n">values21</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp21</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">percentage</span> <span class="o">+=</span> <span class="mi">100</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">segments</span> <span class="o">*</span> <span class="n">averages</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">values11</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Invalid data during swwep&quot;</span><span class="p">)</span>
+
+        <span class="n">truncates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep</span><span class="o">.</span><span class="n">properties</span><span class="o">.</span><span class="n">averages</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">truncates</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">averages</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Truncating </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">values11</span><span class="p">)</span><span class="si">}</span><span class="s2"> values by </span><span class="si">{</span><span class="n">truncates</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">values11</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">values11</span><span class="p">,</span> <span class="n">truncates</span><span class="p">)</span>
+            <span class="n">values21</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">values21</span><span class="p">,</span> <span class="n">truncates</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Averaging </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">values11</span><span class="p">)</span><span class="si">}</span><span class="s2"> values&quot;</span><span class="p">)</span>
+        <span class="n">values11</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">values11</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">values21</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">values21</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">freq</span><span class="p">,</span> <span class="n">values11</span><span class="p">,</span> <span class="n">values21</span>
+
+    <span class="k">def</span> <span class="nf">readSegment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Setting sweep range to </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">stop</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vna</span><span class="o">.</span><span class="n">setSweep</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+
+        <span class="n">frequencies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vna</span><span class="o">.</span><span class="n">readFrequencies</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Read </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span><span class="si">}</span><span class="s2"> frequencies&quot;</span><span class="p">)</span>
+        <span class="n">values11</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readData</span><span class="p">(</span><span class="s2">&quot;data 0&quot;</span><span class="p">)</span>
+        <span class="n">values21</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readData</span><span class="p">(</span><span class="s2">&quot;data 1&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">frequencies</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">values11</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">values21</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No valid data during this run&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="n">frequencies</span><span class="p">,</span> <span class="n">values11</span><span class="p">,</span> <span class="n">values21</span>
+
+    <span class="k">def</span> <span class="nf">readData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Reading &quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">returndata</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">returndata</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tmpdata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vna</span><span class="o">.</span><span class="n">readValues</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Read </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">tmpdata</span><span class="p">)</span><span class="si">}</span><span class="s2"> values&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">tmpdata</span><span class="p">:</span>
+                <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vna</span><span class="o">.</span><span class="n">validateInput</span> <span class="ow">and</span> <span class="p">(</span>
+                        <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">9.5</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">9.5</span>
+                    <span class="p">):</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Got a non plausible data value: &quot;</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+                        <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+                        <span class="k">break</span>
+                    <span class="n">returndata</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">b</span><span class="p">)))</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;An exception occurred reading </span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+                    <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Re-reading &quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+                <span class="n">sleep</span><span class="p">(</span><span class="mf">0.2</span><span class="p">)</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tried and failed to read </span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;trying to reconnect&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">vna</span><span class="o">.</span><span class="n">reconnect</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;=</span> <span class="mi">10</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tried and failed to read </span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> times. Giving up.&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Failed reading </span><span class="si">{</span><span class="n">data</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">count</span><span class="si">}</span><span class="s2"> times.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;Data outside expected valid ranges,&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot; or in an unexpected format.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;You can disable data validation on the&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;device settings screen.&quot;</span>
+                    <span class="p">)</span>
+        <span class="k">return</span> <span class="n">returndata</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, PICC Group.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
