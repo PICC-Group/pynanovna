@@ -1,5 +1,6 @@
-import math
+""" Various tools for handling rf data. """
 import cmath
+import math
 from typing import NamedTuple
 
 from .SITools import Format, clamp_value
@@ -10,6 +11,7 @@ FMT_SWEEP = Format(max_nr_digits=9, allow_strip=True)
 
 
 class Datapoint(NamedTuple):
+    """ Sweep datapoint """
     freq: int
     re: float
     im: float

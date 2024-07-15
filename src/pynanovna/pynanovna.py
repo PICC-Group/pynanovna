@@ -1,16 +1,34 @@
-from .hardware import Hardware as hw
+"""pynanovna main module"""
+
+import builtins
+import csv
+import sys
+import threading
+from datetime import datetime
+from time import sleep
+
 from .Calibration import Calibration
 from .CalibrationGuide import CalibrationGuide
+from .hardware import Hardware as hw
+from .RFTools import Datapoint
 from .SweepWorker import SweepWorker
 from .Touchstone import Touchstone
+<<<<<<< HEAD
+=======
 from .RFTools import Datapoint
 from datetime import datetime
 import threading
 import csv
 from time import sleep
-import builtins
+<<<<<<< HEAD
+>>>>>>> parent of 031e24a (feat: Add autodocs using sphinx and readthedocs. Using poetry for dependecy management and building.)
+=======
+>>>>>>> parent of 031e24a (feat: Add autodocs using sphinx and readthedocs. Using poetry for dependecy management and building.)
+
 
 class NanoVNAWorker:
+    """Worker class handling the Nanovna"""
+
     def __init__(self, vna_index=0, verbose=False):
         """Initialize a NanoVNA object.
 
@@ -18,8 +36,14 @@ class NanoVNAWorker:
             vna_index (int): Number of NanoVNAs to connect, at the moment multiple VNAs are not supported. Defaults to 0.
             verbose (bool): Print information. Defaults to False.
         """
-        if builtins.__sphinx_build__:
-            exit()
+<<<<<<< HEAD
+<<<<<<< HEAD
+        if builtins.__sphinx_build__: # pylint: disable=E1101
+            sys.exit()
+=======
+>>>>>>> parent of 031e24a (feat: Add autodocs using sphinx and readthedocs. Using poetry for dependecy management and building.)
+=======
+>>>>>>> parent of 031e24a (feat: Add autodocs using sphinx and readthedocs. Using poetry for dependecy management and building.)
         self.verbose = verbose
         self.playback_mode = False
         try:
@@ -31,12 +55,8 @@ class NanoVNAWorker:
             self.vna = hw.get_VNA(self.iface)
             self.calibration = Calibration()
             self.touchstone = Touchstone("./output")  #  Fix this.
-            self.worker = SweepWorker(
-                self.vna, self.calibration, self.touchstone, verbose=verbose
-            )
-            self.CalibrationGuide = CalibrationGuide(
-                self.calibration, self.worker, verbose
-            )
+            self.worker = SweepWorker(self.vna, self.calibration, self.touchstone, verbose=verbose)
+            self.calibration_guide = CalibrationGuide(self.calibration, self.worker, verbose)
             if self.verbose:
                 print("VNA is connected: ", self.vna.connected())
                 print("Firmware: ", self.vna.readFirmware())
@@ -58,14 +78,14 @@ class NanoVNAWorker:
             print("Cannot calibrate in playback mode. Connect NanoVNA and restart.")
             return
         if load_file:
-            self.CalibrationGuide.loadCalibration(load_file)
+            self.calibration_guide.loadCalibration(load_file)
             return
-        proceed = self.CalibrationGuide.automaticCalibration()
+        proceed = self.calibration_guide.automaticCalibration()
         while proceed:
-            proceed = self.CalibrationGuide.automaticCalibrationStep()
+            proceed = self.calibration_guide.automaticCalibrationStep()
         if savefile is None:
             savefile = f"./Calibration_file_{datetime.now()}.cal"
-        self.CalibrationGuide.saveCalibration(savefile)
+        self.calibration_guide.saveCalibration(savefile)
 
     def set_sweep(self, start, stop, segments, points):
         """Set the sweep parameters.
@@ -83,16 +103,14 @@ class NanoVNAWorker:
         self.worker.init_data()
         self.vna.datapoints = points
         if self.verbose:
-            print(
-                "Sweep set from "
-                + str(self.worker.sweep.start / 1e9)
-                + "e9"
-                + " to "
-                + str(self.worker.sweep.end / 1e9)
-                + "e9"
-            )
+            print("Sweep set from " + str(self.worker.sweep.start / 1e9) + "e9" + " to " + str(self.worker.sweep.end / 1e9) + "e9")
 
     def single_sweep(self):
+        """ Perform a single sweep
+        
+        Returns:
+            list: Real Reflection, Imaginary Reflection, Real Through, Imaginary Through, Frequency
+        """
         if self.playback_mode:
             print("Cannot do a sweep in playback mode. Connect NanoVNA and restart.")
             return
@@ -113,9 +131,7 @@ class NanoVNAWorker:
         try:
             if not data_file:
                 if self.playback_mode:
-                    print(
-                        "Cannot stream data from NanoVNA in playback mode. Connect NanoVNA and restart."
-                    )
+                    print("Cannot stream data from NanoVNA in playback mode. Connect NanoVNA and restart.")
                     return
 
                 self._stream_data()
@@ -272,7 +288,13 @@ class NanoVNAWorker:
             return
         if self.worker.running:
             self._stop_worker()
-        
+<<<<<<< HEAD
+<<<<<<< HEAD
+
+=======
+>>>>>>> parent of 031e24a (feat: Add autodocs using sphinx and readthedocs. Using poetry for dependecy management and building.)
+=======
+>>>>>>> parent of 031e24a (feat: Add autodocs using sphinx and readthedocs. Using poetry for dependecy management and building.)
         self.vna.disconnect()
         if self.vna.connected():
             raise Exception("The VNA was not successfully disconnected.")

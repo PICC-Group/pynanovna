@@ -1,9 +1,11 @@
-from time import sleep
-import numpy as np
+""" Worker class handling frequency sweeping. """
 import threading
-from .RFTools import corr_att_data
+from time import sleep
+
+import numpy as np
+
+from .RFTools import Datapoint, corr_att_data
 from .Sweep import Sweep
-from .RFTools import Datapoint
 
 
 def truncate(values: list[list[tuple]], count: int, verbose=False) -> list[list[tuple]]:
@@ -18,13 +20,13 @@ def truncate(values: list[list[tuple]], count: int, verbose=False) -> list[list[
     truncated = []
     for valueset in np.swapaxes(values, 0, 1).tolist():
         avg = complex(*np.average(valueset, 0))
-        truncated.append(
-            sorted(valueset, key=lambda v, a=avg: abs(a - complex(*v)))[:keep]
-        )
+        truncated.append(sorted(valueset, key=lambda v, a=avg: abs(a - complex(*v)))[:keep])
     return np.swapaxes(truncated, 0, 1).tolist()
 
 
 class SweepWorker:
+    """ Worker class handling frequency sweeping. """
+    
     def __init__(self, vna, calibration, data, verbose=False):
         if verbose:
             print("Initializing SweepWorker")
@@ -95,9 +97,7 @@ class SweepWorker:
 
     def _run_loop(self) -> None:
         sweep = self.sweep
-        averages = (
-            sweep.properties.averages[0] if sweep.properties.mode == "AVERAGE" else 1
-        )
+        averages = sweep.properties.averages[0] if sweep.properties.mode == "AVERAGE" else 1
         if self.verbose:
             print("Averages: ", averages)
 
@@ -111,9 +111,7 @@ class SweepWorker:
                     break
                 start, stop = sweep.get_index_range(i)
 
-                freq, values11, values21 = self.readAveragedSegment(
-                    start, stop, averages
-                )
+                freq, values11, values21 = self.readAveragedSegment(start, stop, averages)
                 self.percentage = (i + 1) * 100 / sweep.segments
                 self.updateData(freq, values11, values21, i)
             if sweep.properties.mode != "CONTINOUS" or not self.running:
@@ -137,14 +135,8 @@ class SweepWorker:
         if self.verbose:
             print(f"Calculating data and inserting in existing data at index {index}")
         offset = self.sweep.points * index
-        raw_data11 = [
-            Datapoint(freq, values11[i][0], values11[i][1])
-            for i, freq in enumerate(frequencies)
-        ]
-        raw_data21 = [
-            Datapoint(freq, values21[i][0], values21[i][1])
-            for i, freq in enumerate(frequencies)
-        ]
+        raw_data11 = [Datapoint(freq, values11[i][0], values11[i][1]) for i, freq in enumerate(frequencies)]
+        raw_data21 = [Datapoint(freq, values21[i][0], values21[i][1]) for i, freq in enumerate(frequencies)]
 
         data11, data21 = self.applyCalibration(raw_data11, raw_data21)
         if self.verbose:
@@ -156,14 +148,10 @@ class SweepWorker:
             self.rawData21[offset + i] = raw_data21[i]
 
         if self.verbose:
-            print(
-                f"Saving data to application ({len(self.data11)} and {len(self.data21)} points)"
-            )
+            print(f"Saving data to application ({len(self.data11)} and {len(self.data21)} points)")
         self.saveData(self.data11, self.data21)
 
-    def applyCalibration(
-        self, raw_data11: list[Datapoint], raw_data21: list[Datapoint]
-    ) -> tuple[list[Datapoint], list[Datapoint]]:
+    def applyCalibration(self, raw_data11: list[Datapoint], raw_data21: list[Datapoint]) -> tuple[list[Datapoint], list[Datapoint]]:
         data11: list[Datapoint] = []
         data21: list[Datapoint] = []
 
@@ -183,13 +171,8 @@ class SweepWorker:
             data21 = raw_data21
 
         if self.offsetDelay != 0:
-            data11 = [
-                self.calibration.correct_delay(dp, self.offsetDelay, reflect=True)
-                for dp in data11
-            ]
-            data21 = [
-                self.calibration.correct_delay(dp, self.offsetDelay) for dp in data21
-            ]
+            data11 = [self.calibration.correct_delay(dp, self.offsetDelay, reflect=True) for dp in data11]
+            data21 = [self.calibration.correct_delay(dp, self.offsetDelay) for dp in data21]
 
         return data11, data21
 
@@ -273,9 +256,7 @@ class SweepWorker:
             for d in tmpdata:
                 a, b = d.split(" ")
                 try:
-                    if self.vna.validateInput and (
-                        abs(float(a)) > 9.5 or abs(float(b)) > 9.5
-                    ):
+                    if self.vna.validateInput and (abs(float(a)) > 9.5 or abs(float(b)) > 9.5):
                         if self.verbose:
                             print("Got a non plausible data value: ", d)
                         done = False

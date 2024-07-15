@@ -1,5 +1,5 @@
-from .Serial import Interface
 from .NanoVNA_H import NanoVNA_H
+from .Serial import Interface
 
 
 class NanoVNA_H4(NanoVNA_H):

@@ -61,9 +61,7 @@ class Sweep:
 
     def copy(self) -> "Sweep":
         with self._lock:
-            return Sweep(
-                self.start, self.end, self.points, self.segments, self._properties
-            )
+            return Sweep(self.start, self.end, self.points, self.segments, self._properties)
 
     # Getters for attributes, either private or computed.
 
@@ -128,13 +126,7 @@ class Sweep:
             self._properties = self.properties._replace(logarithmic=logarithmic)
 
     def check(self):
-        if (
-            self.segments < 1
-            or self.points < 1
-            or self.start < 1
-            or self.end < self.start
-            or self.stepsize < 0
-        ):
+        if self.segments < 1 or self.points < 1 or self.start < 1 or self.end < self.start or self.stepsize < 0:
             raise ValueError(f"Illegal sweep settings: {self}")
 
     def _exp_factor(self, index: int) -> float:

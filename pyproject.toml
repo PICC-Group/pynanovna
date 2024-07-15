@@ -1,3 +1,5 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
 [tool.poetry]
 name = "pynanovna"
 version = "0.0.7"
@@ -12,6 +14,8 @@ numpy = ">=1.26.4"
 pyserial = ">=3.5"
 scipy = ">=1.13.0"
 python = ">=3.9"
+ruff = "^0.5.1"
+pylint = "^3.2.5"
 
 [tool.poetry.group.docs]
 optional = true
@@ -22,6 +26,97 @@ sphinx-rtd-theme = "^2.0.0"
 sphinx-autobuild = "^2024.4.16"
 sphinx-autodoc-typehints = "^2.2.2"
 
+[tool.ruff]
+line-length = 140
+indent-width = 4
+exclude = [
+    '.bzr',
+    '.direnv',
+    '.eggs',
+    '.git',
+    '.git-rewrite',
+    '.hg',
+    '.ipynb_checkpoints',
+    '.mypy_cache',
+    '.nox',
+    '.pants.d',
+    '.pyenv',
+    '.pytest_cache',
+    '.pytype',
+    '.ruff_cache',
+    '.svn',
+    '.tox',
+    '.venv',
+    '.vscode',
+    '__pypackages__',
+    '_build',
+    'buck-out',
+    'build',
+    'dist',
+    'node_modules',
+    'site-packages',
+    'venv',
+    'deps',
+    'binaries',
+    '__pycache__'
+]
+[tool.ruff.lint]
+select = ['C901', 'E', 'W', 'F', 'RET505', 'I001', 'B034', 'EXE001', 'N', 'UP032', 'FA']
+ignore = []
+mccabe = { max-complexity = 14 }
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.pylint]
+ignore=[
+    '.bzr',
+    '.direnv',
+    '.eggs',
+    '.git',
+    '.git-rewrite',
+    '.hg',
+    '.ipynb_checkpoints',
+    '.mypy_cache',
+    '.nox',
+    '.pants.d',
+    '.pyenv',
+    '.pytest_cache',
+    '.pytype',
+    '.ruff_cache',
+    '.svn',
+    '.tox',
+    '.venv',
+    '.vscode',
+    '__pypackages__',
+    '_build',
+    'buck-out',
+    'build',
+    'dist',
+    'node_modules',
+    'site-packages',
+    'venv',
+    'deps',
+    'binaries',
+    '__pycache__'
+]
+recursive=true
+
+[tool.pylint.format]
+max-line-length=140
+max-module-lines=1000
+
+[tool.pylint.messages_control]
+disable=['wrong-import-order',
+        'missing-module-docstring'
+        ]
+
+=======
+>>>>>>> parent of 031e24a (feat: Add autodocs using sphinx and readthedocs. Using poetry for dependecy management and building.)
+=======
+>>>>>>> parent of 031e24a (feat: Add autodocs using sphinx and readthedocs. Using poetry for dependecy management and building.)
 [project]
 name = "pynanovna"
 version = "0.0.7"

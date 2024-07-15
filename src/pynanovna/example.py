@@ -1,17 +1,19 @@
+"""Example used to show common use use cases of pynanovna."""
+
 import pynanovna
 
 worker = pynanovna.NanoVNAWorker(verbose=True)
 
 # If you want to play a previously recorded file:
-datafile = "path/to/saved/recording.csv"
+DATAFILE = "path/to/saved/recording.csv"
 
 # If NanoVNA is connected:
-datafile = False
+DATAFILE = False
 worker.calibrate(load_file="path/to/saved/calibrationfile.cal")
 worker.set_sweep(2.9e9, 3.1e9, 1, 101)
 
 # Create a stream:
-stream = worker.stream_data(datafile)
+stream = worker.stream_data(DATAFILE)
 
 # Plot functions:
 pynanovna.vis.plot(stream)
