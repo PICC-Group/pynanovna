@@ -6,19 +6,19 @@ import serial
 from serial.tools import list_ports
 from serial.tools.list_ports_common import ListPortInfo
 
-from .VNA import VNA
 from .AVNA import AVNA
+from .JNCRadio_VNA_3G import JNCRadio_VNA_3G
 from .NanoVNA import NanoVNA
 from .NanoVNA_F import NanoVNA_F
 from .NanoVNA_F_V2 import NanoVNA_F_V2
 from .NanoVNA_H import NanoVNA_H
 from .NanoVNA_H4 import NanoVNA_H4
 from .NanoVNA_V2 import NanoVNA_V2
-from .TinySA import TinySA, TinySA_Ultra
-from .JNCRadio_VNA_3G import JNCRadio_VNA_3G
+from .Serial import Interface, drain_serial
 from .SV4401A import SV4401A
 from .SV6301A import SV6301A
-from .Serial import drain_serial, Interface
+from .TinySA import TinySA, TinySA_Ultra
+from .VNA import VNA
 
 USBDevice = namedtuple("Device", "vid pid name")
 

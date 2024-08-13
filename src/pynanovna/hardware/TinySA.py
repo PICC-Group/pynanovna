@@ -1,7 +1,8 @@
 import struct
+
 import numpy as np
 
-from .Serial import drain_serial, Interface
+from .Serial import Interface, drain_serial
 from .VNA import VNA
 
 
@@ -47,16 +48,9 @@ class TinySA(VNA):
         return image_data
 
     def _convert_data(self, image_data: bytes) -> bytes:
-        rgb_data = struct.unpack(
-            f">{self.screenwidth * self.screenheight}H", image_data
-        )
+        rgb_data = struct.unpack(f">{self.screenwidth * self.screenheight}H", image_data)
         rgb_array = np.array(rgb_data, dtype=np.uint32)
-        return (
-            0xFF000000
-            + ((rgb_array & 0xF800) << 8)
-            + ((rgb_array & 0x07E0) << 5)
-            + ((rgb_array & 0x001F) << 3)
-        )
+        return 0xFF000000 + ((rgb_array & 0xF800) << 8) + ((rgb_array & 0x07E0) << 5) + ((rgb_array & 0x001F) << 3)
 
     def resetSweep(self, start: int, stop: int):
         return
@@ -82,9 +76,7 @@ class TinySA(VNA):
         if self.verbose:
             print("Read: %s", value)
         if value == "data 0":
-            self._sweepdata = [
-                f"{conv2float(line)} 0.0" for line in self.exec_command("data 0")
-            ]
+            self._sweepdata = [f"{conv2float(line)} 0.0" for line in self.exec_command("data 0")]
         return self._sweepdata
 
 

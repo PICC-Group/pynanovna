@@ -1,5 +1,6 @@
-import matplotlib.pyplot as plt
 from math import pi
+
+import matplotlib.pyplot as plt
 
 
 def plot(stream):
@@ -57,6 +58,7 @@ def plot(stream):
 
 
 def polar(stream, normalize=False):
+    """ Show polar plot of the data. WIP. """
     plt.ion()
     fig, ax = plt.subplots(1, 2, subplot_kw=dict(polar=True))
     fig.tight_layout(pad=4.0)

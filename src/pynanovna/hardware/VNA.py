@@ -1,8 +1,8 @@
 from time import sleep
 from typing import Iterator
 
-from .Version import Version
 from .Serial import Interface, drain_serial
+from .Version import Version
 
 DISLORD_BW = {
     10: 363,
@@ -21,9 +21,7 @@ WAIT = 0.05
 
 
 def _max_retries(bandwidth: int, datapoints: int) -> int:
-    return round(
-        20 + 20 * (datapoints / 101) + (1000 / bandwidth) ** 1.30 * (datapoints / 101)
-    )
+    return round(20 + 20 * (datapoints / 101) + (1000 / bandwidth) ** 1.30 * (datapoints / 101))
 
 
 class VNA:

@@ -1,7 +1,7 @@
 import math
 from decimal import Context, Decimal, InvalidOperation
-from typing import NamedTuple
 from numbers import Number, Real
+from typing import NamedTuple
 
 PREFIXES = (
     "q",
@@ -88,22 +88,14 @@ class Value:
             self._value = Decimal(value, context=Value.CTX)
 
     def __repr__(self) -> str:
-        return (
-            f"{self.__class__.__name__}("
-            f"{repr(self._value)}, '{self._unit}', {self.fmt})"
-        )
+        return f"{self.__class__.__name__}(" f"{repr(self._value)}, '{self._unit}', {self.fmt})"
 
     def __str__(self) -> str:
         fmt = self.fmt
         if math.isnan(self._value):
             return f"-{fmt.space_str}{self._unit}"
         if fmt.assume_infinity and abs(self._value) >= 10 ** ((fmt.max_offset + 1) * 3):
-            return (
-                ("-" if self._value < 0 else "")
-                + "\N{INFINITY}"
-                + fmt.space_str
-                + self._unit
-            )
+            return ("-" if self._value < 0 else "") + "\N{INFINITY}" + fmt.space_str + self._unit
         if self._value < fmt.printable_min:
             return fmt.unprintable_under + self._unit
         if self._value > fmt.printable_max:
@@ -125,8 +117,7 @@ class Value:
             formstr = ".0f"
         else:
             max_digits = fmt.max_nr_digits + (
-                (1 if not fmt.fix_decimals and abs(real) < 10 else 0)
-                + (1 if not fmt.fix_decimals and abs(real) < 100 else 0)
+                (1 if not fmt.fix_decimals and abs(real) < 10 else 0) + (1 if not fmt.fix_decimals and abs(real) < 100 else 0)
             )
             formstr = f".{max_digits - 3}f"
 
@@ -164,11 +155,7 @@ class Value:
         value = value.replace(" ", "")  # Ignore spaces
 
         if self._unit and (
-            value.endswith(self._unit)
-            or (
-                self.fmt.parse_sloppy_unit
-                and value.lower().endswith(self._unit.lower())
-            )
+            value.endswith(self._unit) or (self.fmt.parse_sloppy_unit and value.lower().endswith(self._unit.lower()))
         ):  # strip unit
             value = value[: -len(self._unit)]
 
@@ -187,14 +174,10 @@ class Value:
             self._value = -math.inf
         else:
             try:
-                self._value = Decimal(value, context=Value.CTX) * Decimal(
-                    factor, context=Value.CTX
-                )
+                self._value = Decimal(value, context=Value.CTX) * Decimal(factor, context=Value.CTX)
             except InvalidOperation as exc:
                 raise ValueError() from exc
-            self._value = clamp_value(
-                self._value, self.fmt.parse_clamp_min, self.fmt.parse_clamp_max
-            )
+            self._value = clamp_value(self._value, self.fmt.parse_clamp_min, self.fmt.parse_clamp_max)
         return self
 
     @property

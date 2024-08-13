@@ -1,9 +1,10 @@
 import struct
+
 import numpy as np
 
-from .Serial import drain_serial, Interface
-from .VNA import VNA
+from .Serial import Interface, drain_serial
 from .Version import Version
+from .VNA import VNA
 
 
 class NanoVNA(VNA):
@@ -47,16 +48,9 @@ class NanoVNA(VNA):
         return image_data
 
     def _convert_data(self, image_data: bytes) -> bytes:
-        rgb_data = struct.unpack(
-            f">{self.screenwidth * self.screenheight}H", image_data
-        )
+        rgb_data = struct.unpack(f">{self.screenwidth * self.screenheight}H", image_data)
         rgb_array = np.array(rgb_data, dtype=np.uint32)
-        return (
-            0xFF000000
-            + ((rgb_array & 0xF800) << 8)
-            + ((rgb_array & 0x07E0) << 5)
-            + ((rgb_array & 0x001F) << 3)
-        )
+        return 0xFF000000 + ((rgb_array & 0xF800) << 8) + ((rgb_array & 0x07E0) << 5) + ((rgb_array & 0x001F) << 3)
 
     def resetSweep(self, start: int, stop: int):
         list(self.exec_command(f"sweep {start} {stop} {self.datapoints}"))
@@ -88,12 +82,7 @@ class NanoVNA(VNA):
             print("readFrequencies: %s", self.sweep_method)
         if self.sweep_method != "scan_mask":
             return super().readFrequencies()
-        return [
-            int(line)
-            for line in self.exec_command(
-                f"scan {self.start} {self.stop} {self.datapoints} 0b001", wait=0
-            )
-        ]
+        return [int(line) for line in self.exec_command(f"scan {self.start} {self.stop} {self.datapoints} 0b001", wait=0)]
 
     def readValues(self, value) -> list[str]:
         if self.sweep_method != "scan_mask":
@@ -104,9 +93,7 @@ class NanoVNA(VNA):
         # The hardware will return all channels which we will store.
         if value == "data 0":
             self._sweepdata = []
-            for line in self.exec_command(
-                f"scan {self.start} {self.stop} {self.datapoints} 0b110", wait=0
-            ):
+            for line in self.exec_command(f"scan {self.start} {self.stop} {self.datapoints} 0b110", wait=0):
                 data = line.split()
                 self._sweepdata.append((f"{data[0]} {data[1]}", f"{data[2]} {data[3]}"))
         if value == "data 0":

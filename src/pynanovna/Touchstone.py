@@ -1,6 +1,6 @@
-import math
 import cmath
 import io
+import math
 from operator import attrgetter
 
 from scipy.interpolate import interp1d
@@ -43,9 +43,7 @@ class Options:
         return Options.UNIT_TO_FACTOR[self.unit]
 
     def __str__(self) -> str:
-        return (
-            f"# {self.unit} {self.parameter}" f" {self.format} r {self.resistance}"
-        ).upper()
+        return (f"# {self.unit} {self.parameter}" f" {self.format} r {self.resistance}").upper()
 
     def parse(self, line: str):
         if not line.startswith("#"):

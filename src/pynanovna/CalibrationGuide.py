@@ -41,9 +41,10 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
             # There's raw data, so we can get corrected data
             if self.verbose:
                 print("Applying new offset to existing sweep data.")
-            (self.worker.data11, self.worker.data21,) = self.worker.applyCalibration(
-                self.worker.rawData11, self.worker.rawData21
-            )
+            (
+                self.worker.data11,
+                self.worker.data21,
+            ) = self.worker.applyCalibration(self.worker.rawData11, self.worker.rawData21)
             if self.verbose:
                 print("Saving and displaying corrected data.")
             self.worker.saveData(
@@ -54,9 +55,7 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
     def calculate(self):
         cal_element = self.calibration.cal_element
         if False:  # TODO ensure sweep is not currently running.
-            print(
-                "Unable to apply calibration while a sweep is running. Please stop the sweep and try again."
-            )
+            print("Unable to apply calibration while a sweep is running. Please stop the sweep and try again.")
             return
 
         cal_element.short_is_ideal = True
@@ -71,9 +70,7 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
                 # There's raw data, so we can get corrected data
                 if self.verbose:
                     print("Applying calibration to existing sweep data.")
-                (self.worker.data11, self.worker.data21) = self.worker.applyCalibration(
-                    self.worker.rawData11, self.worker.rawData21
-                )
+                (self.worker.data11, self.worker.data21) = self.worker.applyCalibration(self.worker.rawData11, self.worker.rawData21)
 
                 if self.verbose:
                     print("Saving and displaying corrected data.")
@@ -83,9 +80,7 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
                     self.worker.data21,
                 )
         except ValueError as e:
-            raise Exception(
-                f"Error applying calibration: {str(e)}\nApplying calibration failed."
-            )
+            raise Exception(f"Error applying calibration: {str(e)}\nApplying calibration failed.")
 
     def loadCalibration(self, filename):
         if filename:
@@ -93,9 +88,7 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
         if not self.calibration.isValid1Port():
             raise Exception("Not a valid port.")
 
-        for i, name in enumerate(
-            ("short", "open", "load", "through", "isolation", "thrurefl")
-        ):
+        for i, name in enumerate(("short", "open", "load", "through", "isolation", "thrurefl")):
             if i == 2 and not self.calibration.isValid2Port():
                 break
         self.calculate()
@@ -114,7 +107,7 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
     def automaticCalibration(self):
         response = input(
             """Calibration assistant,
-            
+
                 This calibration assistant will help you create a calibration in the NanoVNASaver application. It will sweep the standards for you and guide you through the process.\n
                 Before starting, ensure you have Open, Short and Load standards available and the cables you wish to have calibrated connected to the device.\n
                 Make sure sweep is NOT in continuous mode.\n
@@ -127,9 +120,7 @@ class CalibrationGuide:  # renamed from CalibrationWindow since it is no longer 
             return False
         print("Starting automatic calibration assistant.")
         if not self.vna.connected():
-            print(
-                "NanoVNA not connected.\n\nPlease ensure the NanoVNA is connected before attempting calibration."
-            )
+            print("NanoVNA not connected.\n\nPlease ensure the NanoVNA is connected before attempting calibration.")
             return False
 
         if self.worker.sweep.properties.mode == SweepMode.CONTINOUS:

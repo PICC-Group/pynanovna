@@ -1,7 +1,6 @@
 import re
 import typing
 
-
 _RXP = re.compile(
     r"""^
     \D*
