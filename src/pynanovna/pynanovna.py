@@ -22,6 +22,7 @@ class NanoVNAWorker:
         self.playback_mode = False
         try:
             self.iface = hw.get_interfaces()[vna_index]
+            self.iface.open()
         except IndexError:
             print("NanoVNA not found, is it connected? Entering playback mode.")
             self.playback_mode = True
