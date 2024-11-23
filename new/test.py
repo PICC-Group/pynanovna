@@ -1,4 +1,4 @@
-import Hardware.Hardware as hw
+import hardware.Hardware as hw
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,6 +25,7 @@ vna = hw.get_VNA(iface)
 
 # Connect to the VNA.
 print("VNA is connected: ", vna.connected())
+vna.datapoints = 51
 vna.set_sweep(2.9e9, 3.1e9)
 freq = vna.read_frequencies()
 data0 = np.array([complex(*map(float, s.split())) for s in vna.read_values('data 0')]).real
