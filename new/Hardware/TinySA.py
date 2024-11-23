@@ -1,7 +1,6 @@
 import logging
 import struct
 
-import serial
 import numpy as np
 
 from .Serial import drain_serial, Interface

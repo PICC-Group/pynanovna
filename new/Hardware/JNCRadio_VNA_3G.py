@@ -1,7 +1,5 @@
 import logging
 
-import serial
-
 from .NanoVNA import NanoVNA
 from .Serial import Interface
 
