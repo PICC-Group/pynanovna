@@ -57,7 +57,7 @@ class VNA:
         data1 = np.array([complex(*map(float, s.split())) for s in self.vna.read_values('data 1')])
         return data0, data1, freq
 
-    def stream_data(self):
+    def stream(self):
         """Creates a data stream from the continuous sweeping.
 
         Yields:
@@ -127,7 +127,7 @@ class VNA:
                 writer = csv.writer(file)
                 writer.writerow(["S11", "S21", "Freq"])
                 logging.debug("File created, starting stream.")
-                for data in self.stream_data():
+                for data in self.stream():
                     if counter - skip_start > nr_sweeps:
                         break
                     writer.writerow([sweepdivider, counter])

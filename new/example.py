@@ -13,6 +13,6 @@ vna.set_sweep(2.9e9, 3.1e9, 11)
 
 data0, data1, freq = vna.single_sweep() #  Run a single sweep 
 
-for data0, data1, freq in vna.stream_data(): #  Let the NanoVNA run sweeps continuously and stream the data.
+for data0, data1, freq in vna.stream(): #  Let the NanoVNA run sweeps continuously and stream the data.
     #  Use the data.
     print(data0, data1, freq)
