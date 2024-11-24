@@ -10,7 +10,7 @@ class VNA:
 
         Args:
             vna_index (int): If multiple NanoVNAs are connected you can specify which to use.
-            verbose_level (str): The level of outputs. 'critical', 'info' or 'debug'. Defaults to 'info'.
+            logging_level (str): The level of outputs. 'critical', 'info' or 'debug'. Defaults to 'info'.
         """
         logging_level = {'debug': logging.DEBUG, 'critical': logging.CRITICAL}.get(logging_level, logging.INFO)
         logging.basicConfig(level=logging_level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -32,8 +32,7 @@ class VNA:
         Args:
             start (int): The start frequnecy.
             stop (int): The stop frequency.
-            segments (int): Number of segments.
-            points (int): Number of points.
+            points (int): Number of points in the sweep.
         """
         self.vna.datapoints = points
         self.vna.set_sweep(start, stop)
@@ -59,14 +58,10 @@ class VNA:
         return data0, data1, freq
 
     def stream_data(self):
-        """Creates a data stream from the continuous sweeping. (Or a previously recorded file.)
-
-        Args:
-            data_file (string): Path to a previously recorded csv file to stream from. Defaults to False.
-            start_delay (float): Time to wait for the stream to start before yielding values.
+        """Creates a data stream from the continuous sweeping.
 
         Yields:
-            list: Yields a list of data when new data is available.
+            list: Yields a list of data when new data is available. Each datapoint: (s11, s21, frequencies)
         """
         freq = np.array(self.vna.read_frequencies())
         logging.debug("Frequencies read: %d values", len(freq))
@@ -116,6 +111,7 @@ class VNA:
             filename (str): The filename to save to.
             nr_sweeps (int): Number of sweeps to run. Defaults to 10.
             skip_start (int): The NanoVNA usually gives bad data in the beginning, therefore this data can be skipped. Defaults to 5.
+            sweepdivider (str): A string to write between every sweep data to divide.
 
         Raises:
             TypeError: If the filename is not a string.
@@ -153,6 +149,11 @@ class VNA:
             logging.critical(f"Exception in data stream: ", exc_info=e)
 
     def info(self):
+        """Get info about your NanoVNA and the connection to it.
+
+        Returns:
+            dict: A dictionary with the info.
+        """
         specifications = {"Serial Number": self.vna.SN,
                           "Version": str(self.vna.version),
                           "Features":self.vna.features,
