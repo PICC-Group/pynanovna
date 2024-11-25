@@ -1,4 +1,5 @@
-from hardware import Hardware as hw
+from .hardware import Hardware as hw
+from .calibration import Calibration
 
 import logging
 import numpy as np
@@ -30,6 +31,7 @@ class VNA:
         self.vna = hw.get_VNA(self.iface)
         self.sweep_interval = (None, None)
         self.sweep_points = None
+        self.calibration = Calibration()
         logging.debug("VNA object successfully initialized.")
 
     def set_sweep(self, start, stop, points):
@@ -104,18 +106,32 @@ class VNA:
     def calibrate(
         self,
         load_file=False,
-        savefile=None,
     ):
         """Run the calibration guide and calibrate the NanoVNA.
 
         Args:
             load_file (bool, optional): Path to existing calibration. Defaults to False.
-            savefile (path): Path to save the calibration. Defaults to None.
         """
 
         # WIP
 
         pass
+
+    def save_calibration(self, filename: str):
+        """Save the current calibration.
+
+        Args:
+            filename (str): The filename for the calibration.
+        """
+        self.calibration.save(filename)
+
+    def load_calibration(self, filename: str):
+        """Load a previous calibration from a file.
+
+        Args:
+            filename (str): The file containing the previous calibration.
+        """
+        self.calibration.load(filename)
 
     def stream_to_csv(
         self,
@@ -166,6 +182,42 @@ class VNA:
 
         except Exception as e:
             logging.critical("Exception in data stream: ", exc_info=e)
+
+    def _apply_calibration(self, raw_s11, raw_s21): #  This function can probably be optimized.
+        """Apply calibration to raw data.
+
+        Args:
+            raw_s11 (np.array): s11 data.
+            raw_s21 (np.array): s21 data.
+
+        Returns:
+            tuple: calibrated s-parameter data.
+        """
+
+        if not self.calibration.isCalculated:
+            s11 = raw_s11.copy()
+            s21 = raw_s21.copy()
+        elif self.calibration.isValid1Port():
+            s11.extend(self.calibration.correct11(dp) for dp in raw_s11)
+        else:
+            s11 = raw_s11.copy()
+
+        if self.calibration.isValid2Port():
+            for counter, dp in enumerate(raw_s21):
+                dp11 = raw_s11[counter]
+                s21.append(self.calibration.correct21(dp, dp11))
+        else:
+            s21 = raw_s21
+
+        if self.offsetDelay != 0:
+            s11 = [
+                self.calibration.correct_delay(dp, self.offsetDelay, reflect=True)
+                for dp in s11
+            ]
+            s21 = [
+                self.calibration.correct_delay(dp, self.offsetDelay) for dp in s21
+            ]
+        return s11, s21
 
     def info(self):
         """Get info about your NanoVNA and the connection to it.
