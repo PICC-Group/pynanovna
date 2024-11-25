@@ -42,9 +42,7 @@ class TinySA(VNABase):
             self.serial.write("capture\r".encode("ascii"))
             self.serial.readline()
             self.serial.timeout = 4
-            image_data = self.serial.read(
-                self.screenwidth * self.screenheight * 2
-            )
+            image_data = self.serial.read(self.screenwidth * self.screenheight * 2)
             self.serial.timeout = timeout
         self.serial.timeout = timeout
         return image_data
@@ -84,8 +82,7 @@ class TinySA(VNABase):
         logger.debug("Read: %s", value)
         if value == "data 0":
             self._sweepdata = [
-                f"{conv2float(line)} 0.0"
-                for line in self.exec_command("data 0")
+                f"{conv2float(line)} 0.0" for line in self.exec_command("data 0")
             ]
         return self._sweepdata
 

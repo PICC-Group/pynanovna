@@ -4,16 +4,22 @@ import logging
 import numpy as np
 import csv
 
+
 class VNA:
-    def __init__(self, vna_index=0, logging_level='info'):
+    def __init__(self, vna_index=0, logging_level="info"):
         """Initialize a VNA object for the NanoVNA.
 
         Args:
             vna_index (int): If multiple NanoVNAs are connected you can specify which to use.
             logging_level (str): The level of outputs. 'critical', 'info' or 'debug'. Defaults to 'info'.
         """
-        logging_level = {'debug': logging.DEBUG, 'critical': logging.CRITICAL}.get(logging_level, logging.INFO)
-        logging.basicConfig(level=logging_level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        logging_level = {"debug": logging.DEBUG, "critical": logging.CRITICAL}.get(
+            logging_level, logging.INFO
+        )
+        logging.basicConfig(
+            level=logging_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
         logging.debug("Initializing the VNA object.")
         try:
             self.iface = hw.get_interfaces()[vna_index]
@@ -38,12 +44,15 @@ class VNA:
         self.vna.set_sweep(start, stop)
         self.sweep_interval = (start, stop)
         self.sweep_points = points
-        logging.debug("Sweep has been set from "
+        logging.debug(
+            "Sweep has been set from "
             + str(self.sweep_interval[0] / 1e9)
             + "e9"
             + " to "
             + str(self.sweep_interval[1] / 1e9)
-            + "e9, with " + str(self.sweep_points) + " points."
+            + "e9, with "
+            + str(self.sweep_points)
+            + " points."
         )
 
     def single_sweep(self):
@@ -53,8 +62,12 @@ class VNA:
             tuple: s11, s21, frequencies
         """
         freq = np.array(self.vna.read_frequencies())
-        data0 = np.array([complex(*map(float, s.split())) for s in self.vna.read_values('data 0')])
-        data1 = np.array([complex(*map(float, s.split())) for s in self.vna.read_values('data 1')])
+        data0 = np.array(
+            [complex(*map(float, s.split())) for s in self.vna.read_values("data 0")]
+        )
+        data1 = np.array(
+            [complex(*map(float, s.split())) for s in self.vna.read_values("data 1")]
+        )
         return data0, data1, freq
 
     def stream(self):
@@ -69,11 +82,15 @@ class VNA:
 
         while True:
             try:
-                raw_data0 = self.vna.read_values('data 0')
-                raw_data1 = self.vna.read_values('data 1')
+                raw_data0 = self.vna.read_values("data 0")
+                raw_data1 = self.vna.read_values("data 1")
 
-                data0 = np.array([complex(*map(float, s.split())) for s in raw_data0]).copy()
-                data1 = np.array([complex(*map(float, s.split())) for s in raw_data1]).copy()
+                data0 = np.array(
+                    [complex(*map(float, s.split())) for s in raw_data0]
+                ).copy()
+                data1 = np.array(
+                    [complex(*map(float, s.split())) for s in raw_data1]
+                ).copy()
 
                 yield data0, data1, freq
 
@@ -85,26 +102,28 @@ class VNA:
                 break
 
     def calibrate(
-            self,
-            load_file=False,
-            savefile=None,
-        ):
-            """Run the calibration guide and calibrate the NanoVNA.
+        self,
+        load_file=False,
+        savefile=None,
+    ):
+        """Run the calibration guide and calibrate the NanoVNA.
 
-            Args:
-                load_file (bool, optional): Path to existing calibration. Defaults to False.
-                savefile (path): Path to save the calibration. Defaults to None.
-            """
+        Args:
+            load_file (bool, optional): Path to existing calibration. Defaults to False.
+            savefile (path): Path to save the calibration. Defaults to None.
+        """
 
+        # WIP
 
+        pass
 
-            # WIP
-
-
-
-            pass
-
-    def stream_to_csv(self, filename, nr_sweeps=float("INF"), skip_start=5, sweepdivider="sweepnumber: "):
+    def stream_to_csv(
+        self,
+        filename,
+        nr_sweeps=float("INF"),
+        skip_start=5,
+        sweepdivider="sweepnumber: ",
+    ):
         """Function to save the stream to a csv file.
 
         Args:
@@ -139,8 +158,8 @@ class VNA:
                                     data[:][0][data_index],
                                     data[:][1][data_index],
                                     data[:][2][data_index],
-                                    ]
-                                )
+                                ]
+                            )
         except KeyboardInterrupt:
             logging.debug("KeyboardInterrupt in stream, killing loop.")
             return
@@ -154,15 +173,16 @@ class VNA:
         Returns:
             dict: A dictionary with the info.
         """
-        specifications = {"Serial Number": self.vna.SN,
-                          "Version": str(self.vna.version),
-                          "Features":self.vna.features,
-                          "Bandwidth Method": self.vna.bw_method,
-                          "Bandwidth": self.vna.bandwidth,
-                          "Valid Datapoints": self.vna.valid_datapoints,
-                          "Minimum Sweep Points": self.vna.sweep_points_min,
-                          "Interface": str(self.iface),
-                          "Info": hw.get_info(self.iface)
+        specifications = {
+            "Serial Number": self.vna.SN,
+            "Version": str(self.vna.version),
+            "Features": self.vna.features,
+            "Bandwidth Method": self.vna.bw_method,
+            "Bandwidth": self.vna.bandwidth,
+            "Valid Datapoints": self.vna.valid_datapoints,
+            "Minimum Sweep Points": self.vna.sweep_points_min,
+            "Interface": str(self.iface),
+            "Info": hw.get_info(self.iface),
         }
         return specifications
 

@@ -1,19 +1,18 @@
 import matplotlib.pyplot as plt
-from math import pi
 import numpy as np
 
 
-def plot(stream, axis_mode='first', fixed_limits=None, log=True):
+def plot(stream, axis_mode="first", fixed_limits=None, log=True):
     """
     Show a magnitude plot from the data.
-    
+
     Args:
         stream: The data stream to plot.
         axis_mode (str): 'dynamic', 'fixed', or 'first'. Default is 'dynamic'.
             'dynamic' - Axes limits adjust to data.
             'fixed' - Axes limits are fixed as per 'fixed_limits'.
             'first' - Axes limits are set based on the first data batch and kept constant.
-        fixed_limits (dict): A dictionary containing axis limits if axis_mode is 'fixed'. 
+        fixed_limits (dict): A dictionary containing axis limits if axis_mode is 'fixed'.
             Example: [min_s11, max_s11, min_s21, max_s21]
     """
     plt.ion()
@@ -23,8 +22,8 @@ def plot(stream, axis_mode='first', fixed_limits=None, log=True):
     ax[0].set(xlabel="Frequency (Hz)", ylabel="dB", title="S11")
     ax[1].set(xlabel="Frequency (Hz)", ylabel="dB", title="S21")
 
-    line1, = ax[0].plot([], [], label="S11")
-    line2, = ax[1].plot([], [], label="S21")
+    (line1,) = ax[0].plot([], [], label="S11")
+    (line2,) = ax[1].plot([], [], label="S21")
     ax[0].legend()
     ax[1].legend()
 
@@ -45,10 +44,18 @@ def plot(stream, axis_mode='first', fixed_limits=None, log=True):
         line2.set_data(x, s21)
 
         if first_data:
-            if axis_mode == 'first' or axis_mode == 'fixed':
+            if axis_mode == "first" or axis_mode == "fixed":
                 fixed_xlim = (min(x), max(x))
-                fixed_ylim_s11 = (fixed_limits[0], fixed_limits[1]) if axis_mode == 'fixed' else (min(s11), max(s11))
-                fixed_ylim_s21 = (fixed_limits[2], fixed_limits[3]) if axis_mode == 'fixed' else (min(s21), max(s21))
+                fixed_ylim_s11 = (
+                    (fixed_limits[0], fixed_limits[1])
+                    if axis_mode == "fixed"
+                    else (min(s11), max(s11))
+                )
+                fixed_ylim_s21 = (
+                    (fixed_limits[2], fixed_limits[3])
+                    if axis_mode == "fixed"
+                    else (min(s21), max(s21))
+                )
 
                 ax[0].set_xlim(*fixed_xlim)
                 ax[0].set_ylim(*fixed_ylim_s11)
@@ -57,7 +64,7 @@ def plot(stream, axis_mode='first', fixed_limits=None, log=True):
 
             first_data = False
 
-        if axis_mode == 'dynamic':
+        if axis_mode == "dynamic":
             ax[0].relim()
             ax[0].autoscale_view()
             ax[1].relim()

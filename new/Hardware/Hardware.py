@@ -66,11 +66,7 @@ def _fix_v2_hwinfo(dev):
 
 def usb_typename(device: ListPortInfo) -> str:
     return next(
-        (
-            t.name
-            for t in USBDEVICETYPES
-            if device.vid == t.vid and device.pid == t.pid
-        ),
+        (t.name for t in USBDEVICETYPES if device.vid == t.vid and device.pid == t.pid),
         "",
     )
 
