@@ -142,11 +142,11 @@ class VNA:
                                     ]
                                 )
         except KeyboardInterrupt:
-            logging.debug(f"KeyboardInterrupt in stream, killing loop.")
+            logging.debug("KeyboardInterrupt in stream, killing loop.")
             return
 
         except Exception as e:
-            logging.critical(f"Exception in data stream: ", exc_info=e)
+            logging.critical("Exception in data stream: ", exc_info=e)
 
     def info(self):
         """Get info about your NanoVNA and the connection to it.
