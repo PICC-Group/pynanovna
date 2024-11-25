@@ -4,9 +4,6 @@ import numpy as np
 
 
 
-
-
-
 def stream_from_csv(filename, sweepdivider="sweepnumber: ", delay=0.1):
     """Stream previously recorded data from a csv file.
 
