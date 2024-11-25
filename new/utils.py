@@ -7,7 +7,7 @@ import numpy as np
 
 
 
-def csv_streamer(filename, sweepdivider="sweepnumber: ", delay=0.1):
+def stream_from_csv(filename, sweepdivider="sweepnumber: ", delay=0.1):
     """Stream previously recorded data from a csv file.
 
     Args:
