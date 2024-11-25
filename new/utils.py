@@ -1,6 +1,7 @@
 import logging
 import time
 import numpy as np
+import hardware as hw
 
 
 def stream_from_csv(filename, sweepdivider="sweepnumber: ", delay=0.1):
@@ -47,3 +48,21 @@ def stream_from_csv(filename, sweepdivider="sweepnumber: ", delay=0.1):
     except Exception as e:
         logging.critical("Exception when streaming from csv file.", exc_info=e)
         return
+
+
+def get_portinfos():
+    """Get information about communication ports.
+
+    Returns:
+        list: Port information.
+    """
+    return hw.get_portinfos()
+
+def get_interfaces():
+    """Get all available interfaces.
+
+    Returns:
+        list: Interface
+    """
+    return hw.get_interfaces()
+
