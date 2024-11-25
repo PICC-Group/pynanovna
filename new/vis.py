@@ -1,3 +1,4 @@
+import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -35,44 +36,52 @@ def plot(stream, axis_mode="first", fixed_limits=None, log=True):
 
     first_data = True
 
-    for new_data in stream:
-        s11 = np.abs(new_data[0])
-        s21 = np.abs(new_data[1])
-        x = new_data[2]
+    try:
+        for new_data in stream:
+            s11 = np.abs(new_data[0])
+            s21 = np.abs(new_data[1])
+            x = new_data[2]
 
-        line1.set_data(x, s11)
-        line2.set_data(x, s21)
+            line1.set_data(x, s11)
+            line2.set_data(x, s21)
 
-        if first_data:
-            if axis_mode == "first" or axis_mode == "fixed":
-                fixed_xlim = (min(x), max(x))
-                fixed_ylim_s11 = (
-                    (fixed_limits[0], fixed_limits[1])
-                    if axis_mode == "fixed"
-                    else (min(s11), max(s11))
-                )
-                fixed_ylim_s21 = (
-                    (fixed_limits[2], fixed_limits[3])
-                    if axis_mode == "fixed"
-                    else (min(s21), max(s21))
-                )
+            if first_data:
+                if axis_mode == "first" or axis_mode == "fixed":
+                    fixed_xlim = (min(x), max(x))
+                    fixed_ylim_s11 = (
+                        (fixed_limits[0], fixed_limits[1])
+                        if axis_mode == "fixed"
+                        else (min(s11), max(s11))
+                    )
+                    fixed_ylim_s21 = (
+                        (fixed_limits[2], fixed_limits[3])
+                        if axis_mode == "fixed"
+                        else (min(s21), max(s21))
+                    )
 
-                ax[0].set_xlim(*fixed_xlim)
-                ax[0].set_ylim(*fixed_ylim_s11)
-                ax[1].set_xlim(*fixed_xlim)
-                ax[1].set_ylim(*fixed_ylim_s21)
+                    ax[0].set_xlim(*fixed_xlim)
+                    ax[0].set_ylim(*fixed_ylim_s11)
+                    ax[1].set_xlim(*fixed_xlim)
+                    ax[1].set_ylim(*fixed_ylim_s21)
 
-            first_data = False
+                first_data = False
 
-        if axis_mode == "dynamic":
-            ax[0].relim()
-            ax[0].autoscale_view()
-            ax[1].relim()
-            ax[1].autoscale_view()
+            if axis_mode == "dynamic":
+                ax[0].relim()
+                ax[0].autoscale_view()
+                ax[1].relim()
+                ax[1].autoscale_view()
 
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-        plt.pause(0.001)
+            fig.canvas.draw()
+            fig.canvas.flush_events()
+            plt.pause(0.001)
+    
+    except KeyboardInterrupt:
+        logging.info("Killing csv stream because of keyboard interrupt.")
+        return
+    except Exception as e:
+        logging.critical("Error in the magnitude plot function.", exc_info=e)
+        return
 
     plt.ioff()
     plt.show()
@@ -137,11 +146,11 @@ def polar(stream, normalize=False):
             plt.pause(0.01)
 
         except KeyboardInterrupt:
-            print("Plot interrupted by user.")
-            break
+            logging.info("Killing csv stream because of keyboard interrupt.")
+            return
         except Exception as e:
-            print(f"Error in polar plot: {e}")
-            break
+            logging.critical("Error in the polar plot function.", exc_info=e)
+            return
 
     plt.ioff()
     plt.show()
