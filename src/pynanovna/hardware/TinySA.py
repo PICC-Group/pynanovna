@@ -72,7 +72,7 @@ class TinySA(VNABase):
         logger.debug("readFrequencies")
         return [int(line) for line in self.exec_command("frequencies")]
 
-    def read_values(self, value) -> list[str]:
+    def read_values(self, value, reduce_wait: float = 0.0) -> list[str]:
         def conv2float(data: str) -> float:
             try:
                 return 10 ** (float(data.strip()) / 20)
@@ -82,7 +82,7 @@ class TinySA(VNABase):
         logger.debug("Read: %s", value)
         if value == "data 0":
             self._sweepdata = [
-                f"{conv2float(line)} 0.0" for line in self.exec_command("data 0")
+                f"{conv2float(line)} 0.0" for line in self.exec_command("data 0", reduce_wait)
             ]
         return self._sweepdata
 

@@ -93,7 +93,7 @@ class NanoVNA(VNABase):
             )
         ]
 
-    def read_values(self, value) -> list[str]:
+    def read_values(self, value, reduce_wait: float = 0.0) -> list[str]:
         if self.sweep_method != "scan_mask":
             return super().read_values(value)
         logger.debug("readValue with scan mask (%s)", value)
@@ -102,7 +102,7 @@ class NanoVNA(VNABase):
         if value == "data 0":
             self._sweepdata = []
             for line in self.exec_command(
-                f"scan {self.start} {self.stop} {self.datapoints} 0b110"
+                f"scan {self.start} {self.stop} {self.datapoints} 0b110", reduce_wait
             ):
                 data = line.split()
                 self._sweepdata.append((f"{data[0]} {data[1]}", f"{data[2]} {data[3]}"))

@@ -147,7 +147,7 @@ def get_comment(iface: Interface) -> str:
     return "Unknown"
 
 
-def detect_version(serial_port: serial.Serial, wait:float = 0.05) -> str:
+def detect_version(serial_port: serial.Serial, wait: float = 0.05) -> str:
     data = ""
     for i in range(RETRIES):
         drain_serial(serial_port)

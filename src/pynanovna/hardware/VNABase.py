@@ -73,12 +73,12 @@ class VNABase:
         self.connect()
         sleep(self.wait)
 
-    def exec_command(self, command: str) -> Iterator[str]:
+    def exec_command(self, command: str, reduce_wait: float = 0.0) -> Iterator[str]:
         logger.debug("exec_command(%s)", command)
         with self.serial.lock:
             drain_serial(self.serial)
             self.serial.write(f"{command}\r".encode("ascii"))
-            sleep(self.wait)
+            sleep(self.wait - reduce_wait)
             retries = 0
             max_retries = _max_retries(self.bandwidth, self.datapoints)
             logger.debug("Max retries: %s", max_retries)
@@ -89,7 +89,7 @@ class VNABase:
                     retries += 1
                     if retries > max_retries:
                         raise IOError("too many retries")
-                    sleep(self.wait)
+                    sleep(self.wait - reduce_wait)
                     continue
                 if line == command:  # suppress echo
                     continue
@@ -170,9 +170,9 @@ class VNABase:
         logger.debug("result:\n%s", result)
         return result
 
-    def read_values(self, value) -> list[str]:
+    def read_values(self, value, reduce_wait: float = 0.0) -> list[str]:
         logger.debug("VNA reading %s", value)
-        result = list(self.exec_command(value))
+        result = list(self.exec_command(value, reduce_wait))
         logger.debug("VNA done reading %s (%d values)", value, len(result))
         return result
 
@@ -192,5 +192,7 @@ class VNABase:
 
     def set_wait(self, new_wait: float):
         if new_wait < 0.05:
-            logger.critical("Wait is set to lower than the standard 0.05 seconds, this might cause problems with the serial communication depending on how low it is set and what system you operate.")
+            logger.critical(
+                "Wait is set to lower than the standard 0.05 seconds, this might cause problems with the serial communication depending on how low it is set and what system you operate."
+            )
         self.wait = new_wait
