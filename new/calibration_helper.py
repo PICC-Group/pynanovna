@@ -9,9 +9,7 @@ if not vna.is_connected():
     print("No vna connected. Quitting.")
     quit()
 
-input(
-    "Enter the frequency range and number of points to calibrate for. Enter to continue."
-)
+print("Enter the frequency range and number of points to calibrate for.")
 start = float(input("Enter minimum frequency as a float: "))
 stop = float(input("Enter maximum frequency as a float: "))
 points = int(input("Enter number of points as an int: "))
@@ -48,7 +46,7 @@ input(
 )
 vna.calibrate()
 
-ans = input("Do you wish to save this calibration to a file? [y]/n")
+ans = input("Do you wish to save this calibration to a file? [y]/n: ")
 
 if ans not in ["n", "N", "no", "No"]:
     filename = f"./Calibration_{time.time()}.cal"

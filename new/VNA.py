@@ -35,6 +35,7 @@ class VNA:
         self.sweep_interval = (None, None)
         self.sweep_points = None
         self.calibration = Calibration()
+        self.offset_delay = 0
         logging.debug("VNA object successfully initialized.")
 
     def set_sweep(self, start: float, stop: float, points: int):
@@ -66,14 +67,15 @@ class VNA:
         Returns:
             tuple: s11, s21, frequencies
         """
-        freq = np.array(self.vna.read_frequencies())
+        frequencies = np.array(self.vna.read_frequencies())
         data0 = np.array(
             [complex(*map(float, s.split())) for s in self.vna.read_values("data 0")]
         )
         data1 = np.array(
             [complex(*map(float, s.split())) for s in self.vna.read_values("data 1")]
         )
-        return data0, data1, freq
+        s11, s21 = self._apply_calibration(data0, data1, frequencies)
+        return s11, s21, frequencies
 
     def stream(self) -> tuple:
         """Creates a data stream from the continuous sweeping.
@@ -81,8 +83,8 @@ class VNA:
         Yields:
             tuple: Yields a list of data when new data is available. Each datapoint: (s11, s21, frequencies)
         """
-        freq = np.array(self.vna.read_frequencies())
-        logging.debug("Frequencies read: %d values", len(freq))
+        frequencies = np.array(self.vna.read_frequencies())
+        logging.debug("Frequencies read: %d values", len(frequencies))
         logging.debug("Starting stream.")
 
         while True:
@@ -97,7 +99,9 @@ class VNA:
                     [complex(*map(float, s.split())) for s in raw_data1]
                 ).copy()
 
-                yield data0, data1, freq
+                s11, s21 = self._apply_calibration(data0, data1, frequencies)
+
+                yield s11, s21, frequencies
 
             except KeyboardInterrupt:
                 logging.debug("KeyboardInterrupt in stream, killing loop.")
@@ -229,8 +233,8 @@ class VNA:
             logging.critical("Exception in data stream: ", exc_info=e)
 
     def _apply_calibration(
-        self, raw_s11, raw_s21
-    ) -> tuple:  #  This function can probably be optimized.
+        self, raw_s11: np.array, raw_s21: np.array, frequencies: np.array
+    ) -> tuple:
         """Apply calibration to raw data.
 
         Args:
@@ -240,33 +244,53 @@ class VNA:
         Returns:
             tuple: calibrated s-parameter data.
         """
+        s11 = raw_s11.copy()
+        s21 = raw_s21.copy()
 
-        if not self.calibration.isCalculated:
-            s11 = raw_s11.copy()
-            s21 = raw_s21.copy()
-        elif self.calibration.isValid1Port():
-            s11.extend(self.calibration.correct11(datapoint) for datapoint in raw_s11)
+        is_calculated = self.calibration.isCalculated
+        is_valid_1port = self.calibration.isValid1Port()
+        is_valid_2port = self.calibration.isValid2Port()
+
+        if not is_calculated:
+            logging.critical(
+                "No calibration has been applied, it is strongly recommended to calibrate you NanoVNA."
+            )
+
+        if is_calculated and is_valid_1port:
+            s11 = [
+                self.calibration.correct11(datapoint, frequencies[i])
+                for i, datapoint in enumerate(raw_s11)
+            ]
         else:
-            s11 = raw_s11.copy()
+            logging.critical(
+                "1 port calibration not valid, it is recommended to re-calibrate."
+            )
 
-        if self.calibration.isValid2Port():
-            for counter, datapoint in enumerate(raw_s21):
-                datapoint11 = raw_s11[counter]
-                s21.append(self.calibration.correct21(datapoint, datapoint11))
+        if is_valid_2port:
+            s21 = [
+                self.calibration.correct21(datapoint, raw_s11[i], frequencies[i])
+                for i, datapoint in enumerate(raw_s21)
+            ]
         else:
-            s21 = raw_s21
+            logging.critical(
+                "2 port calibration not valid, it is recommended to re-calibrate."
+            )
 
-        if self.offsetDelay != 0:
+        # Apply offset delay if needed.
+        if self.offset_delay != 0:
             s11 = [
                 self.calibration.correct_delay(
-                    datapoint, self.offsetDelay, reflect=True
+                    datapoint, frequencies[i], self.offset_delay, reflect=True
                 )
-                for datapoint in s11
+                for i, datapoint in enumerate(s11)
             ]
             s21 = [
-                self.calibration.correct_delay(datapoint, self.offsetDelay)
-                for datapoint in s21
+                self.calibration.correct_delay(
+                    datapoint, frequencies[i], self.offset_delay
+                )
+                for i, datapoint in enumerate(s21)
             ]
+
         return s11, s21
 
     def is_connected(self) -> bool:

@@ -62,7 +62,7 @@ def correct_delay(datapoint, frequency, delay: float, reflect: bool = False):
     corr_data = datapoint * cmath.exp(
         complex(0, 1) * 2 * math.pi * frequency * delay * -1 * mult
     )
-    return frequency, complex(corr_data.real, corr_data.imag)
+    return complex(corr_data.real, corr_data.imag)
 
 
 @dataclass
@@ -273,9 +273,9 @@ class Calibration:
         self, name: str, s11: np.array, s21: np.array, frequencies: np.array
     ):
         if name in {"through", "isolation"}:
-            self.calibration.insert(name, s21, frequencies)
+            self.insert(name, s21, frequencies)
         else:
-            self.calibration.insert(name, s11, frequencies)
+            self.insert(name, s11, frequencies)
 
     def insert(self, name: str, data: np.array, frequencies: np.array):
         for datapoint, frequency in zip(data, frequencies):
@@ -515,7 +515,7 @@ class Calibration:
         s11 = (datapoint - i["e00"](frequency)) / (
             (datapoint * i["e11"](frequency)) - i["delta_e"](frequency)
         )
-        return frequency, s11
+        return s11
 
     def correct21(self, datapoint: complex, datapoint11: complex, frequency: int):
         i = self.interp
@@ -524,7 +524,7 @@ class Calibration:
             i["e10e01"](frequency)
             / (i["e11"](frequency) * datapoint11 - i["delta_e"](frequency))
         )
-        return frequency, s21
+        return s21
 
     def save(self, filename: str):
         self.dataset.notes = "\n".join(self.notes)
