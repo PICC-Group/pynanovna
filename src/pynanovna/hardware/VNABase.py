@@ -20,7 +20,6 @@ DISLORD_BW = {
     2000: 1,
     4000: 0,
 }
-WAIT = 0.05
 
 
 def _max_retries(bandwidth: int, datapoints: int) -> int:
@@ -32,7 +31,6 @@ def _max_retries(bandwidth: int, datapoints: int) -> int:
 class VNABase:
     name = "VNA"
     valid_datapoints = (101, 51, 11)
-    wait = 0.05
     SN = "NOT SUPPORTED"
     sweep_points_max = 101
     sweep_points_min = 11
@@ -49,6 +47,7 @@ class VNABase:
         # [((min_freq, max_freq), [description]]. Order by increasing
         # frequency. Put default output power first.
         self.txPowerRanges = []
+        self.wait = 0.05
         if self.connected():
             self.version = self.read_version()
             self.read_features()
@@ -70,16 +69,16 @@ class VNABase:
 
     def reconnect(self):
         self.disconnect()
-        sleep(WAIT)
+        sleep(self.wait)
         self.connect()
-        sleep(WAIT)
+        sleep(self.wait)
 
-    def exec_command(self, command: str, wait: float = WAIT) -> Iterator[str]:
+    def exec_command(self, command: str) -> Iterator[str]:
         logger.debug("exec_command(%s)", command)
         with self.serial.lock:
             drain_serial(self.serial)
             self.serial.write(f"{command}\r".encode("ascii"))
-            sleep(wait)
+            sleep(self.wait)
             retries = 0
             max_retries = _max_retries(self.bandwidth, self.datapoints)
             logger.debug("Max retries: %s", max_retries)
@@ -90,7 +89,7 @@ class VNABase:
                     retries += 1
                     if retries > max_retries:
                         raise IOError("too many retries")
-                    sleep(wait)
+                    sleep(self.wait)
                     continue
                 if line == command:  # suppress echo
                     continue
@@ -190,3 +189,8 @@ class VNABase:
 
     def get_serial_number(self) -> str:
         return " ".join(list(self.exec_command("sn")))
+
+    def set_wait(self, new_wait: float):
+        if new_wait < 0.05:
+            logger.critical("Wait is set to lower than the standard 0.05 seconds, this might cause problems with the serial communication depending on how low it is set and what system you operate.")
+        self.wait = new_wait

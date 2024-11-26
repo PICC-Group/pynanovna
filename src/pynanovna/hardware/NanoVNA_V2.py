@@ -36,8 +36,6 @@ _ADDR_HARDWARE_REVISION = 0xF2
 _ADDR_FW_MAJOR = 0xF3
 _ADDR_FW_MINOR = 0xF4
 
-WRITE_SLEEP = 0.05
-
 _ADF4350_TXPOWER_DESC_MAP = {
     0: "9dB attenuation",
     1: "6dB attenuation",
@@ -64,7 +62,7 @@ class NanoVNA_V2(VNABase):
         # reset protocol to known state
         with self.serial.lock:
             self.serial.write(pack("<Q", 0))
-            sleep(WRITE_SLEEP)
+            sleep(self.wait)
 
         # firmware major version of 0xff indicates dfu mode
         if self.version.major == 0xFF:
@@ -146,10 +144,10 @@ class NanoVNA_V2(VNABase):
             timeout = self.serial.timeout
             with self.serial.lock:
                 self.serial.write(pack("<Q", 0))
-                sleep(WRITE_SLEEP)
+                sleep(self.wait)
                 # cmd: write register 0x30 to clear FIFO
                 self.serial.write(pack("<BBB", _CMD_WRITE, _ADDR_VALUES_FIFO, 0))
-                sleep(WRITE_SLEEP)
+                sleep(self.wait)
                 # clear sweepdata
                 self._sweepdata = [(complex(), complex())] * (self.datapoints + s21hack)
                 pointstodo = self.datapoints + s21hack
@@ -169,7 +167,7 @@ class NanoVNA_V2(VNABase):
                             pointstoread,
                         )
                     )
-                    sleep(WRITE_SLEEP)
+                    sleep(self.wait)
                     # each value is 32 bytes
                     nBytes = pointstoread * 32
 
@@ -204,7 +202,7 @@ class NanoVNA_V2(VNABase):
         cmd = pack("<BBBB", _CMD_READ, cmd_0, _CMD_READ, cmd_1)
         with self.serial.lock:
             self.serial.write(cmd)
-            # sleep(WRITE_SLEEP)
+            # sleep(self.wait)
             sleep(2.0)  # could fix bug #585 but shoud be done
             # in a more predictive way
             resp = self.serial.read(2)
@@ -250,7 +248,7 @@ class NanoVNA_V2(VNABase):
         cmd += pack("<BBH", _CMD_WRITE2, _ADDR_SWEEP_VALS_PER_FREQ, 1)
         with self.serial.lock:
             self.serial.write(cmd)
-            sleep(WRITE_SLEEP)
+            sleep(self.wait)
 
     def setTXPower(self, freq_range, power_desc):
         if freq_range[0] != 140e6:

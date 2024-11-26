@@ -32,7 +32,6 @@ USBDEVICETYPES = (
 )
 RETRIES = 3
 TIMEOUT = 0.2
-WAIT = 0.05
 
 NAME2DEVICE = {
     "S-A-A-2": NanoVNA_V2,
@@ -148,7 +147,7 @@ def get_comment(iface: Interface) -> str:
     return "Unknown"
 
 
-def detect_version(serial_port: serial.Serial) -> str:
+def detect_version(serial_port: serial.Serial, wait:float = 0.05) -> str:
     data = ""
     for i in range(RETRIES):
         drain_serial(serial_port)
@@ -156,7 +155,7 @@ def detect_version(serial_port: serial.Serial) -> str:
         # workaround for some UnicodeDecodeError ... repeat ;-)
         drain_serial(serial_port)
         serial_port.write("\r".encode("ascii"))
-        sleep(0.05)
+        sleep(wait)
 
         data = serial_port.read(128).decode("ascii")
         if data.startswith("ch> "):
@@ -173,7 +172,7 @@ def detect_version(serial_port: serial.Serial) -> str:
     return ""
 
 
-def get_info(serial_port: serial.Serial) -> str:
+def get_info(serial_port: serial.Serial, wait: float = 0.05) -> str:
     for _ in range(RETRIES):
         drain_serial(serial_port)
         serial_port.write("info\r".encode("ascii"))
@@ -186,7 +185,7 @@ def get_info(serial_port: serial.Serial) -> str:
                 retries += 1
                 if retries > RETRIES:
                     return ""
-                sleep(WAIT)
+                sleep(wait)
                 continue
             if line == "info":  # suppress echo
                 continue
