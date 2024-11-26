@@ -1,26 +1,9 @@
-#  NanoVNASaver
-#
-#  A python program to view and export Touchstone data from a NanoVNA
-#  Copyright (C) 2019, 2020  Rune B. Broberg
-#  Copyright (C) 2020,2021 NanoVNA-Saver Authors
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import logging
 import cmath
 import math
 import os
 import re
+import numpy as np
 from collections import defaultdict, UserDict
 from dataclasses import dataclass
 
@@ -158,36 +141,33 @@ class CalDataSet(UserDict):
                 + "\n"
                 + "# Hz ShortR ShortI OpenR OpenI LoadR LoadI"
                 + (
-                    " ThroughR ThroughI ThrureflR"
-                    " ThrureflI IsolationR IsolationI\n"
+                    " ThroughR ThroughI ThrureflR" " ThrureflI IsolationR IsolationI\n"
                     if self.complete2port()
                     else "\n"
                 )
-                + "\n".join(
-                    [f"{self.data.get(freq)}" for freq in self.frequencies()]
-                )
+                + "\n".join([f"{self.data.get(freq)}" for freq in self.frequencies()])
                 + "\n"
             )
             if self.complete1port()
             else ""
         )
 
-    def _append_match(
-        self, m: re.Match, header: str, line_nr: int, line: str
-    ) -> None:
+    def _append_match(self, m: re.Match, header: str, line_nr: int, line: str) -> None:
         cal = m.groupdict()
         columns = {col[:-1] for col in cal.keys() if cal[col] and col != "freq"}
         if "through" in columns and header == "sol":
-            logger.warning(
-                "Through data with sol header. %i: %s", line_nr, line
-            )
+            logger.warning("Through data with sol header. %i: %s", line_nr, line)
         # fix short data (without thrurefl)
         if "thrurefl" in columns and "isolation" not in columns:
             cal["isolationr"] = cal["thrureflr"]
             cal["isolationi"] = cal["thrurefli"]
             cal["thrureflr"], cal["thrurefli"] = None, None
         for name in columns:
-            self.insert(name, complex(float(cal[f"{name}r"]), float(cal[f"{name}i"])), int(cal["freq"]))
+            self.insert(
+                name,
+                complex(float(cal[f"{name}r"]), float(cal[f"{name}i"])),
+                int(cal["freq"]),
+            )
 
     def from_str(self, text: str) -> "CalDataSet":
         # reset data
@@ -203,9 +183,7 @@ class CalDataSet(UserDict):
                 continue
             if m := RXP_CAL_HEADER.search(line):
                 if header:
-                    logger.warning(
-                        "Duplicate header in cal data. %i: %s", i, line
-                    )
+                    logger.warning("Duplicate header in cal data. %i: %s", i, line)
                 header = "through" if m.group("through") else "sol"
                 continue
             if not line or line.startswith("#"):
@@ -216,9 +194,7 @@ class CalDataSet(UserDict):
                 logger.warning("Illegal caldata. Line %i: %s", i, line)
                 continue
             if not header:
-                logger.warning(
-                    "Caldata without having read header: %i: %s", i, line
-                )
+                logger.warning("Caldata without having read header: %i: %s", i, line)
             self._append_match(m, header, line, i)
         return self
 
@@ -226,7 +202,7 @@ class CalDataSet(UserDict):
         """Insert a datapoint in the dataset.
 
         Args:
-            name (str): Name of dataset. 
+            name (str): Name of dataset.
             Must be one of:
                 "short",
                 "open",
@@ -293,9 +269,17 @@ class Calibration:
 
         self.source = "Manual"
 
-    def insert(self, name: str, data: list[complex], frequencies):
-        for dp, frequency in zip(data, frequencies):
-            self.dataset.insert(name, dp, frequency)
+    def calibration_step(
+        self, name: str, s11: np.array, s21: np.array, frequencies: np.array
+    ):
+        if name in {"through", "isolation"}:
+            self.calibration.insert(name, s21, frequencies)
+        else:
+            self.calibration.insert(name, s11, frequencies)
+
+    def insert(self, name: str, data: np.array, frequencies: np.array):
+        for datapoint, frequency in zip(data, frequencies):
+            self.dataset.insert(name, datapoint, frequency)
 
     def size(self) -> int:
         return len(self.dataset.frequencies())
@@ -327,8 +311,7 @@ class Calibration:
         cal.e00 = (
             -(
                 (g2 * gm3 - g3 * gm3) * g1 * gm2
-                - (g2 * g3 * gm2 - g2 * g3 * gm3 - (g3 * gm2 - g2 * gm3) * g1)
-                * gm1
+                - (g2 * g3 * gm2 - g2 * g3 * gm3 - (g3 * gm2 - g2 * gm3) * g1) * gm1
             )
             / denominator
         )
@@ -406,9 +389,7 @@ class Calibration:
         return (
             (Zsp / 50.0 - 1.0)
             / (Zsp / 50.0 + 1.0)
-            * cmath.exp(
-                complex(0.0, -4.0 * math.pi * freq * cal_element.short_length)
-            )
+            * cmath.exp(complex(0.0, -4.0 * math.pi * freq * cal_element.short_length))
         )
 
     def gamma_open(self, freq: int) -> complex:
@@ -448,9 +429,7 @@ class Calibration:
         return (
             (Zl / 50.0 - 1.0)
             / (Zl / 50.0 + 1.0)
-            * cmath.exp(
-                complex(0.0, -4 * math.pi * freq * cal_element.load_length)
-            )
+            * cmath.exp(complex(0.0, -4 * math.pi * freq * cal_element.load_length))
         )
 
     def gamma_through(self, freq: int) -> complex:

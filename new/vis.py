@@ -75,7 +75,7 @@ def plot(stream, axis_mode="first", fixed_limits=None, log=True):
             fig.canvas.draw()
             fig.canvas.flush_events()
             plt.pause(0.001)
-    
+
     except KeyboardInterrupt:
         logging.info("Killing csv stream because of keyboard interrupt.")
         return

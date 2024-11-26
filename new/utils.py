@@ -58,6 +58,7 @@ def get_portinfos():
     """
     return hw.get_portinfos()
 
+
 def get_interfaces():
     """Get all available interfaces.
 
@@ -65,4 +66,3 @@ def get_interfaces():
         list: Interface
     """
     return hw.get_interfaces()
-

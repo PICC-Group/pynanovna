@@ -1,5 +1,5 @@
-from .hardware import Hardware as hw
-from .calibration import Calibration
+from hardware import Hardware as hw
+from calibration import Calibration
 
 import logging
 import numpy as np
@@ -7,7 +7,7 @@ import csv
 
 
 class VNA:
-    def __init__(self, vna_index=0, logging_level="info"):
+    def __init__(self, vna_index: int = 0, logging_level: str = "info"):
         """Initialize a VNA object for the NanoVNA.
 
         Args:
@@ -25,8 +25,11 @@ class VNA:
         try:
             self.iface = hw.get_interfaces()[vna_index]
             self.iface.open()
+            self.connected = True
         except IndexError:
             logging.critical("NanoVNA not found, is it connected and turned on?")
+            self.connected = False
+            return
 
         self.vna = hw.get_VNA(self.iface)
         self.sweep_interval = (None, None)
@@ -34,7 +37,7 @@ class VNA:
         self.calibration = Calibration()
         logging.debug("VNA object successfully initialized.")
 
-    def set_sweep(self, start, stop, points):
+    def set_sweep(self, start: float, stop: float, points: int):
         """Set the sweep parameters.
 
         Args:
@@ -57,7 +60,7 @@ class VNA:
             + " points."
         )
 
-    def single_sweep(self):
+    def single_sweep(self) -> tuple:
         """Run a single sweep and return the data.
 
         Returns:
@@ -72,11 +75,11 @@ class VNA:
         )
         return data0, data1, freq
 
-    def stream(self):
+    def stream(self) -> tuple:
         """Creates a data stream from the continuous sweeping.
 
         Yields:
-            list: Yields a list of data when new data is available. Each datapoint: (s11, s21, frequencies)
+            tuple: Yields a list of data when new data is available. Each datapoint: (s11, s21, frequencies)
         """
         freq = np.array(self.vna.read_frequencies())
         logging.debug("Frequencies read: %d values", len(freq))
@@ -103,19 +106,44 @@ class VNA:
                 logging.critical("Exception in data stream: %s", e, exc_info=True)
                 break
 
-    def calibrate(
-        self,
-        load_file=False,
-    ):
-        """Run the calibration guide and calibrate the NanoVNA.
+    def calibration_step(self, step: str):
+        """Runs a sweep and uses the data for calibration.
 
         Args:
-            load_file (bool, optional): Path to existing calibration. Defaults to False.
+            step (str): The calibration step.
         """
+        if step == "short":
+            logging.info(
+                "Make sure you set the sweep to the range you intend to measure in BEFORE calibration."
+            )
+        assert step in ["short", "open", "load", "isolation", "through"]
+        s11, s21, frequencies = self.single_sweep()
+        self.calibration.calibration_step(step, s11, s21, frequencies)
+        if step == "through":
+            logging.debug("Running through step. Here thrurefl is also run.")
+            self.calibration.calibration_step("thrurefl", s11, s21, frequencies)
+            logging.info(
+                "If you have done all the steps correctly, run the calibrate() function to enable the calibration."
+            )
 
-        # WIP
+    def calibrate(self):
+        """Calculates a calibration from the steps.
 
-        pass
+        Raises:
+            Exception: If the calibration is not successfully calculated.
+        """
+        self.calibration.cal_element.short_is_ideal = True
+        self.calibration.cal_element.open_is_ideal = True
+        self.calibration.cal_element.load_is_ideal = True
+        self.calibration.cal_element.through_is_ideal = True
+
+        try:
+            self.calibration.calc_corrections()
+            logging.info("Calibration successfully enabled.")
+        except ValueError as e:
+            raise Exception(
+                f"Error applying calibration: {str(e)}\nApplying calibration failed."
+            )
 
     def save_calibration(self, filename: str):
         """Save the current calibration.
@@ -123,7 +151,14 @@ class VNA:
         Args:
             filename (str): The filename for the calibration.
         """
-        self.calibration.save(filename)
+        if not self.calibration.isCalculated:
+            raise Exception("Cannot save an unapplied calibration state.")
+        try:
+            self.calibration.save(filename)
+            return True
+        except Exception as e:
+            print("Save failed: ", e)
+            return False
 
     def load_calibration(self, filename: str):
         """Load a previous calibration from a file.
@@ -131,14 +166,24 @@ class VNA:
         Args:
             filename (str): The file containing the previous calibration.
         """
-        self.calibration.load(filename)
+        if filename:
+            self.calibration.load(filename)
+        if not self.calibration.isValid1Port():
+            raise Exception("Not a valid port.")
+
+        for i, name in enumerate(
+            ("short", "open", "load", "through", "isolation", "thrurefl")
+        ):
+            if i == 2 and not self.calibration.isValid2Port():
+                break
+        self.calibrate()
 
     def stream_to_csv(
         self,
-        filename,
-        nr_sweeps=float("INF"),
-        skip_start=5,
-        sweepdivider="sweepnumber: ",
+        filename: str,
+        nr_sweeps: int = float("INF"),
+        skip_start: int = 5,
+        sweepdivider: str = "sweepnumber: ",
     ):
         """Function to save the stream to a csv file.
 
@@ -183,7 +228,9 @@ class VNA:
         except Exception as e:
             logging.critical("Exception in data stream: ", exc_info=e)
 
-    def _apply_calibration(self, raw_s11, raw_s21): #  This function can probably be optimized.
+    def _apply_calibration(
+        self, raw_s11, raw_s21
+    ) -> tuple:  #  This function can probably be optimized.
         """Apply calibration to raw data.
 
         Args:
@@ -198,28 +245,39 @@ class VNA:
             s11 = raw_s11.copy()
             s21 = raw_s21.copy()
         elif self.calibration.isValid1Port():
-            s11.extend(self.calibration.correct11(dp) for dp in raw_s11)
+            s11.extend(self.calibration.correct11(datapoint) for datapoint in raw_s11)
         else:
             s11 = raw_s11.copy()
 
         if self.calibration.isValid2Port():
-            for counter, dp in enumerate(raw_s21):
-                dp11 = raw_s11[counter]
-                s21.append(self.calibration.correct21(dp, dp11))
+            for counter, datapoint in enumerate(raw_s21):
+                datapoint11 = raw_s11[counter]
+                s21.append(self.calibration.correct21(datapoint, datapoint11))
         else:
             s21 = raw_s21
 
         if self.offsetDelay != 0:
             s11 = [
-                self.calibration.correct_delay(dp, self.offsetDelay, reflect=True)
-                for dp in s11
+                self.calibration.correct_delay(
+                    datapoint, self.offsetDelay, reflect=True
+                )
+                for datapoint in s11
             ]
             s21 = [
-                self.calibration.correct_delay(dp, self.offsetDelay) for dp in s21
+                self.calibration.correct_delay(datapoint, self.offsetDelay)
+                for datapoint in s21
             ]
         return s11, s21
 
-    def info(self):
+    def is_connected(self) -> bool:
+        """Check if the NanoVNA is connected.
+
+        Returns:
+            bool: If it is connected or not.
+        """
+        return self.vna.connected()
+
+    def info(self) -> dict:
         """Get info about your NanoVNA and the connection to it.
 
         Returns:
@@ -250,4 +308,3 @@ class VNA:
         else:
             if self.verbose:
                 print("Disconnected VNA.")
-            return
