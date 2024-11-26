@@ -46,7 +46,7 @@ RXP_CAL_LINE = re.compile(
 logger = logging.getLogger(__name__)
 
 
-def correct_delay(datapoint, frequency, delay: float, reflect: bool = False):
+def correct_delay(datapoint, frequency, delay: float, reflect: bool = False) -> complex:
     """Correct delay using delayoffset.
 
     Args:
@@ -56,7 +56,7 @@ def correct_delay(datapoint, frequency, delay: float, reflect: bool = False):
         reflect (bool): Defaults to False.
 
     Returns:
-        tuple: frequency, corrected datapoint
+        tuple: corrected datapoint
     """
     mult = 2 if reflect else 1
     corr_data = datapoint * cmath.exp(
