@@ -3,7 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot(stream, axis_mode="first", fixed_limits=None, log=True):
+def plot(
+    stream: object,
+    axis_mode: str = "first",
+    fixed_limits: list[float] = None,
+    log: bool = True,
+):
     """
     Show a magnitude plot from the data.
 
@@ -13,8 +18,10 @@ def plot(stream, axis_mode="first", fixed_limits=None, log=True):
             'dynamic' - Axes limits adjust to data.
             'fixed' - Axes limits are fixed as per 'fixed_limits'.
             'first' - Axes limits are set based on the first data batch and kept constant.
-        fixed_limits (dict): A dictionary containing axis limits if axis_mode is 'fixed'.
+        fixed_limits (list): A dictionary containing axis limits if axis_mode is 'fixed'.
             Example: [min_s11, max_s11, min_s21, max_s21]
+        log (bool): If the magnitude should be log or not.
+
     """
     plt.ion()
     fig, ax = plt.subplots(2, 1, figsize=(10, 8))
@@ -87,7 +94,7 @@ def plot(stream, axis_mode="first", fixed_limits=None, log=True):
     plt.show()
 
 
-def polar(stream, normalize=False):
+def polar(stream: object, normalize: bool = False):
     """
     Create polar plots for S11 and S21 data.
 

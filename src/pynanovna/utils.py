@@ -4,7 +4,9 @@ import numpy as np
 from .hardware import hardware as hw
 
 
-def stream_from_csv(filename, sweepdivider="sweepnumber: ", delay=0.1):
+def stream_from_csv(
+    filename: str, sweepdivider: str = "sweepnumber: ", delay: float = 0.1
+) -> tuple[np.array[complex], np.array[complex], np.array[int]]:
     """Stream previously recorded data from a csv file.
 
     Args:
@@ -50,7 +52,7 @@ def stream_from_csv(filename, sweepdivider="sweepnumber: ", delay=0.1):
         return
 
 
-def get_portinfos():
+def get_portinfos() -> list[str]:
     """Get information about communication ports.
 
     Returns:
@@ -59,7 +61,7 @@ def get_portinfos():
     return hw.get_portinfos()
 
 
-def get_interfaces():
+def get_interfaces() -> object:
     """Get all available interfaces.
 
     Returns:
