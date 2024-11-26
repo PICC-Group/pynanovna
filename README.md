@@ -57,6 +57,13 @@ If you use *pynanovna* in your research or project, please cite it as follows:
 ## 📜 Licence
 *pynanovna* is under GNU General Public License.
 
+## Contribution and feature requests
+If you want to contribute to *pynanovna*, please create a pull request and assign to:
+- [@tbergkvist](https://github.com/tbergkvist)
+- [@OdoctorG](https://github.com/OdoctorG)
+
+If you have a feature you think is missing and want implemented, create an issue with the `enhancement` label, describing clearly the feature.
+
 ## 🕰️ History
 Originally this was the fork [nanovna-saver-headless](https://github.com/PICC-Group/nanovna-saver-headless) from [nanovna-saver](https://github.com/NanoVNA-Saver/nanovna-saver) but when that project no longer shared much code with the original we decided to create a new project.
 
