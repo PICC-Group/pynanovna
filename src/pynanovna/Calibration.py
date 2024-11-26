@@ -272,6 +272,14 @@ class Calibration:
     def calibration_step(
         self, name: str, s11: np.array, s21: np.array, frequencies: np.array
     ):
+        """Register data from one calibration step.
+
+        Args:
+            name (str): The step.
+            s11 (np.array): Raw s11 data.
+            s21 (np.array): Raw s21 data.
+            frequencies (np.array): Frequencies of the sweep.
+        """
         if name in {"through", "isolation"}:
             self.insert(name, s21, frequencies)
         else:
@@ -288,9 +296,19 @@ class Calibration:
         return self.dataset.size_of(name)
 
     def is_valid_1_port(self) -> bool:
+        """Check if the port has been calibrated.
+
+        Returns:
+            bool: If the port is calibrated.
+        """
         return self.dataset.complete1port()
 
     def is_valid_2_port(self) -> bool:
+        """Check if the port has been calibrated.
+
+        Returns:
+            bool: If the port is calibrated.
+        """
         return self.dataset.complete2port()
 
     def _calc_port_1(self, freq: int, cal: CalData):
