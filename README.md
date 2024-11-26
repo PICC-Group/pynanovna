@@ -10,11 +10,11 @@ This is a python module for using a NanoVNA.
 
 ## 🌟 Features
     ✅ Supporting almost all NanoVNAs.
-    🔄 Streaming of s11 and s21 data.
-    📶 Run single sweeps.
+    📶 Run single sweeps of s11 & s21 data.
+    🔄 Stream continuous sweeps.
     🛠️ Calibrate your NanoVNA.
-    📊 Interactive, real-time plotting of data.
-    📁 Recording to CSV files.
+    📊 Interactive, real-time plots of data.
+    📁 Record to CSV files.
 
 
 ## 🛠️ Installation
