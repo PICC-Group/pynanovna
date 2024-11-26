@@ -112,6 +112,56 @@ class VNA:
                 logging.critical("Exception in data stream: %s", e, exc_info=True)
                 break
 
+    def stream_to_csv(
+        self,
+        filename: str,
+        nr_sweeps: int = float("INF"),
+        skip_start: int = 5,
+        sweepdivider: str = "sweepnumber: ",
+    ):
+        """Function to save the stream to a csv file.
+
+        Args:
+            filename (str): The filename to save to.
+            nr_sweeps (int): Number of sweeps to run. Defaults to 10.
+            skip_start (int): The NanoVNA usually gives bad data in the beginning, therefore this data can be skipped. Defaults to 5.
+            sweepdivider (str): A string to write between every sweep data to divide.
+
+        Raises:
+            TypeError: If the filename is not a string.
+        """
+        try:
+            if not isinstance(filename, str):
+                raise TypeError("Filename must be a string")
+            if not filename.endswith(".csv"):
+                filename += ".csv"
+            file_path = filename
+            counter = 0
+            with open(file_path, mode="w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(["S11", "S21", "Freq"])
+                logging.debug("File created, starting stream.")
+                for data in self.stream():
+                    if counter - skip_start > nr_sweeps:
+                        break
+                    writer.writerow([sweepdivider, counter])
+                    counter += 1
+                    if counter > skip_start:
+                        for data_index in range(len(data[0])):
+                            writer.writerow(
+                                [
+                                    data[:][0][data_index],
+                                    data[:][1][data_index],
+                                    data[:][2][data_index],
+                                ]
+                            )
+        except KeyboardInterrupt:
+            logging.debug("KeyboardInterrupt in stream, killing loop.")
+            return
+
+        except Exception as e:
+            logging.critical("Exception in data stream: ", exc_info=e)
+
     def calibration_step(self, step: str):
         """Runs a sweep and uses the data for calibration.
 
@@ -184,56 +234,6 @@ class VNA:
                 break
         self.calibrate()
 
-    def stream_to_csv(
-        self,
-        filename: str,
-        nr_sweeps: int = float("INF"),
-        skip_start: int = 5,
-        sweepdivider: str = "sweepnumber: ",
-    ):
-        """Function to save the stream to a csv file.
-
-        Args:
-            filename (str): The filename to save to.
-            nr_sweeps (int): Number of sweeps to run. Defaults to 10.
-            skip_start (int): The NanoVNA usually gives bad data in the beginning, therefore this data can be skipped. Defaults to 5.
-            sweepdivider (str): A string to write between every sweep data to divide.
-
-        Raises:
-            TypeError: If the filename is not a string.
-        """
-        try:
-            if not isinstance(filename, str):
-                raise TypeError("Filename must be a string")
-            if not filename.endswith(".csv"):
-                filename += ".csv"
-            file_path = filename
-            counter = 0
-            with open(file_path, mode="w", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow(["S11", "S21", "Freq"])
-                logging.debug("File created, starting stream.")
-                for data in self.stream():
-                    if counter - skip_start > nr_sweeps:
-                        break
-                    writer.writerow([sweepdivider, counter])
-                    counter += 1
-                    if counter > skip_start:
-                        for data_index in range(len(data[0])):
-                            writer.writerow(
-                                [
-                                    data[:][0][data_index],
-                                    data[:][1][data_index],
-                                    data[:][2][data_index],
-                                ]
-                            )
-        except KeyboardInterrupt:
-            logging.debug("KeyboardInterrupt in stream, killing loop.")
-            return
-
-        except Exception as e:
-            logging.critical("Exception in data stream: ", exc_info=e)
-
     def _apply_calibration(
         self,
         raw_s11: list[complex],
@@ -297,6 +297,14 @@ class VNA:
             ]
 
         return s11, s21
+
+    def set_offset_delay(self, delay: float):
+        """Set offset delay. This is used in calibration.
+
+        Args:
+            delay (float): The delay.
+        """
+        self.offset_delay = delay
 
     def is_connected(self) -> bool:
         """Check if the NanoVNA is connected.
