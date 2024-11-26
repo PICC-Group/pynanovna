@@ -9,6 +9,9 @@ from vis import plot, polar
 # use comments to run only the part you are interested in.
 ##############################################################
 
+
+#### SETUP ####
+
 # Create a VNA object to control your NanoVNA.
 vna = VNA()
 
@@ -24,6 +27,8 @@ vna.load_calibration("./Calibration_1732611179.9071949.cal")
 # Set the sweep range and number of points to measure.
 vna.set_sweep(2.0e9, 2.8e9, 101)
 
+
+#### USAGE ####
 
 # Run a single sweep and retrieve the data.
 data0, data1, freq = vna.single_sweep()
