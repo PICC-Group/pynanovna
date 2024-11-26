@@ -1,5 +1,5 @@
-from hardware import Hardware as hw
-from calibration import Calibration
+from .hardware import Hardware as hw
+from .calibration import Calibration
 
 import logging
 import numpy as np

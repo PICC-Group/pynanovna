@@ -1,5 +1,5 @@
 # fmt: off
-from pynanovna import VNA
+from .pynanovna import VNA
 from utils import stream_from_csv
 from vis import plot, polar
 

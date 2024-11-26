@@ -1,7 +1,7 @@
 import logging
 import time
 import numpy as np
-import hardware as hw
+from .hardware import hardware as hw
 
 
 def stream_from_csv(filename, sweepdivider="sweepnumber: ", delay=0.1):
