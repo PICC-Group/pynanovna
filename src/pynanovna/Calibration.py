@@ -287,10 +287,10 @@ class Calibration:
     def data_size(self, name) -> int:
         return self.dataset.size_of(name)
 
-    def isValid1Port(self) -> bool:
+    def is_valid_1_port(self) -> bool:
         return self.dataset.complete1port()
 
-    def isValid2Port(self) -> bool:
+    def is_valid_2_port(self) -> bool:
         return self.dataset.complete2port()
 
     def _calc_port_1(self, freq: int, cal: CalData):
@@ -340,7 +340,7 @@ class Calibration:
         cal.e10e32 = (gm4 - gm6) * (1 - cal.e11 * cal.e22 * gt**2) / gt
 
     def calc_corrections(self):
-        if not self.isValid1Port():
+        if not self.is_valid_1_port():
             logger.warning("Tried to calibrate from insufficient data.")
             raise ValueError(
                 "All of short, open and load calibration steps"
@@ -351,7 +351,7 @@ class Calibration:
         for freq, caldata in self.dataset.items():
             try:
                 self._calc_port_1(freq, caldata)
-                if self.isValid2Port():
+                if self.is_valid_2_port():
                     self._calc_port_2(freq, caldata)
             except ZeroDivisionError as exc:
                 self.isCalculated = False
@@ -528,7 +528,7 @@ class Calibration:
 
     def save(self, filename: str):
         self.dataset.notes = "\n".join(self.notes)
-        if not self.isValid1Port():
+        if not self.is_valid_1_port():
             raise ValueError("Not a valid calibration")
         with open(filename, mode="w", encoding="utf-8") as calfile:
             calfile.write(str(self.dataset))

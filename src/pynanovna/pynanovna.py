@@ -172,13 +172,13 @@ class VNA:
         """
         if filename:
             self.calibration.load(filename)
-        if not self.calibration.isValid1Port():
+        if not self.calibration.is_valid_1_port():
             raise Exception("Not a valid port.")
 
         for i, name in enumerate(
             ("short", "open", "load", "through", "isolation", "thrurefl")
         ):
-            if i == 2 and not self.calibration.isValid2Port():
+            if i == 2 and not self.calibration.is_valid_2_port():
                 break
         self.calibrate()
 
@@ -248,8 +248,8 @@ class VNA:
         s21 = raw_s21.copy()
 
         is_calculated = self.calibration.isCalculated
-        is_valid_1port = self.calibration.isValid1Port()
-        is_valid_2port = self.calibration.isValid2Port()
+        is_valid_1port = self.calibration.is_valid_1_port()
+        is_valid_2port = self.calibration.is_valid_2_port()
 
         if not is_calculated:
             logging.critical(
