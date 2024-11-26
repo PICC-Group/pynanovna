@@ -1,5 +1,9 @@
+import logging
 from threading import Lock
+
 import serial
+
+logger = logging.getLogger(__name__)
 
 
 def drain_serial(serial_port: serial.Serial):
@@ -13,7 +17,7 @@ def drain_serial(serial_port: serial.Serial):
             serial_port.timeout = timeout
             return
     serial_port.timeout = timeout
-    print("Warning: Unable to drain all data")
+    logger.warning("unable to drain all data")
 
 
 class Interface(serial.Serial):

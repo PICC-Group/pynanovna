@@ -1,5 +1,9 @@
+import logging
+
 from .NanoVNA import NanoVNA
 from .Serial import Interface
+
+logger = logging.getLogger(__name__)
 
 
 class SV4401A(NanoVNA):
@@ -14,7 +18,7 @@ class SV4401A(NanoVNA):
         super().__init__(iface)
         self.sweep_max_freq_Hz = 4.4e9
 
-    def setSweep(self, start, stop):
+    def set_sweep(self, start, stop):
         self.start = start
         self.stop = stop
         list(self.exec_command(f"scan {start} {stop} {self.datapoints}"))

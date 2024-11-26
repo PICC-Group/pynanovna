@@ -1,38 +1,39 @@
+import logging
 import struct
+
 import numpy as np
 
 from .Serial import drain_serial, Interface
-from .VNA import VNA
+from .VNABase import VNABase
 from .Version import Version
 
+logger = logging.getLogger(__name__)
 
-class NanoVNA(VNA):
+
+class NanoVNA(VNABase):
     name = "NanoVNA"
     screenwidth = 320
     screenheight = 240
 
-    def __init__(self, iface: Interface, verbose=False):
+    def __init__(self, iface: Interface):
         super().__init__(iface)
         self.sweep_method = "sweep"
         self.read_features()
-        self.verbose = verbose
-        if self.verbose:
-            print("Setting initial start,stop")
+        logger.debug("Setting initial start,stop")
         self.start, self.stop = self._get_running_frequencies()
         self.sweep_max_freq_Hz = 300e6
         self._sweepdata = []
 
     def _get_running_frequencies(self):
-        if self.verbose:
-            print("Reading values: frequencies")
+        logger.debug("Reading values: frequencies")
         try:
             frequencies = super().readValues("frequencies")
             return frequencies[0], frequencies[-1]
         except Exception as e:
-            print("Waring: %s reading frequencies", e)
-            print("falling back to generic")
+            logger.warning("%s reading frequencies", e)
+            logger.info("falling back to generic")
 
-        return VNA._get_running_frequencies(self)
+        return VNABase._get_running_frequencies(self)
 
     def _capture_data(self) -> bytes:
         timeout = self.serial.timeout
@@ -58,11 +59,11 @@ class NanoVNA(VNA):
             + ((rgb_array & 0x001F) << 3)
         )
 
-    def resetSweep(self, start: int, stop: int):
+    def reset_sweep(self, start: int, stop: int):
         list(self.exec_command(f"sweep {start} {stop} {self.datapoints}"))
         list(self.exec_command("resume"))
 
-    def setSweep(self, start, stop):
+    def set_sweep(self, start, stop):
         self.start = start
         self.stop = stop
         if self.sweep_method == "sweep":
@@ -73,39 +74,35 @@ class NanoVNA(VNA):
     def read_features(self):
         super().read_features()
         if self.version >= Version("0.7.1"):
-            if self.verbose:
-                print("Using scan mask command.")
+            logger.debug("Using scan mask command.")
             self.features.add("Scan mask command")
             self.sweep_method = "scan_mask"
         elif self.version >= Version("0.2.0"):
-            if self.verbose:
-                print("Using new scan command.")
+            logger.debug("Using new scan command.")
             self.features.add("Scan command")
             self.sweep_method = "scan"
 
-    def readFrequencies(self) -> list[int]:
-        if self.verbose:
-            print("readFrequencies: %s", self.sweep_method)
+    def read_frequencies(self) -> list[int]:
+        logger.debug("readFrequencies: %s", self.sweep_method)
         if self.sweep_method != "scan_mask":
-            return super().readFrequencies()
+            return super().read_frequencies()
         return [
             int(line)
             for line in self.exec_command(
-                f"scan {self.start} {self.stop} {self.datapoints} 0b001", wait=0
+                f"scan {self.start} {self.stop} {self.datapoints} 0b001"
             )
         ]
 
-    def readValues(self, value) -> list[str]:
+    def read_values(self, value) -> list[str]:
         if self.sweep_method != "scan_mask":
-            return super().readValues(value)
-        if self.verbose:
-            print("readValue with scan mask (%s)", value)
+            return super().read_values(value)
+        logger.debug("readValue with scan mask (%s)", value)
         # Actually grab the data only when requesting channel 0.
         # The hardware will return all channels which we will store.
         if value == "data 0":
             self._sweepdata = []
             for line in self.exec_command(
-                f"scan {self.start} {self.stop} {self.datapoints} 0b110", wait=0
+                f"scan {self.start} {self.stop} {self.datapoints} 0b110"
             ):
                 data = line.split()
                 self._sweepdata.append((f"{data[0]} {data[1]}", f"{data[2]} {data[3]}"))

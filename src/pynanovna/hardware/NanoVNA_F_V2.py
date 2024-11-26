@@ -1,5 +1,9 @@
+import logging
+
 from .NanoVNA import NanoVNA
 from .Serial import Interface
+
+logger = logging.getLogger(__name__)
 
 
 class NanoVNA_F_V2(NanoVNA):

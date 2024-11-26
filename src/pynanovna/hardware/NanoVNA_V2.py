@@ -1,13 +1,16 @@
+import logging
 import platform
 from struct import pack, unpack_from
 from time import sleep
 
 from .Serial import Interface
-from .VNA import VNA
+from .VNABase import VNABase
 from .Version import Version
 
 if platform.system() != "Windows":
     import tty
+
+logger = logging.getLogger(__name__)
 
 _CMD_NOP = 0x00
 _CMD_INDICATE = 0x0D
@@ -46,18 +49,14 @@ _ADF4350_TXPOWER_DESC_REV_MAP = {
 }
 
 
-class NanoVNA_V2(VNA):
+class NanoVNA_V2(VNABase):
     name = "NanoVNA-V2"
     valid_datapoints = (101, 11, 51, 201, 301, 501, 1023)
     screenwidth = 320
     screenheight = 240
 
-    def __init__(self, iface: Interface, verbose=False):
+    def __init__(self, iface: Interface):
         super().__init__(iface)
-        self.verbose = verbose
-
-        if not self.connected():
-            self.connect()
 
         if platform.system() != "Windows":
             tty.setraw(self.serial.fd)
@@ -74,13 +73,13 @@ class NanoVNA_V2(VNA):
         if "S21 hack" in self.features:
             self.valid_datapoints = (101, 11, 51, 201, 301, 501, 1021)
 
-        self.sweepStartHz = 200e6
-        self.sweepStepHz = 1e6
+        self.sweep_start_Hz = 200e6
+        self.sweep_step_Hz = 1e6
 
         self._sweepdata = []
-        self._updateSweep()
+        self._update_sweep()
 
-    def getCalibration(self) -> str:
+    def get_calibration(self) -> str:
         return "Unknown"
 
     def read_features(self):
@@ -93,8 +92,7 @@ class NanoVNA_V2(VNA):
         else:
             self.sweep_max_freq_Hz = 3000e6
         if self.version <= Version("1.0.1"):
-            if self.verbose:
-                print("Hack for s21 oddity in first sweeppoint")
+            logger.debug("Hack for s21 oddity in first sweeppoint")
             self.features.add("S21 hack")
         if self.version >= Version("1.0.2"):
             self.features.update({"Set TX power partial", "Set Average"})
@@ -106,15 +104,14 @@ class NanoVNA_V2(VNA):
                 ),
             ]
 
-    def readFirmware(self) -> str:
+    def read_firmware(self) -> str:
         result = f"HW: {self.read_board_revision()}\nFW: {self.version}"
-        if self.verbose:
-            print("readFirmware: %s", result)
+        logger.debug("readFirmware: %s", result)
         return result
 
-    def readFrequencies(self) -> list[int]:
+    def read_frequencies(self) -> list[int]:
         return [
-            int(self.sweepStartHz + i * self.sweepStepHz)
+            int(self.sweep_start_Hz + i * self.sweep_step_Hz)
             for i in range(self.datapoints)
         ]
 
@@ -135,14 +132,12 @@ class NanoVNA_V2(VNA):
             refl = complex(rev0_real, rev0_imag)
             thru = complex(rev1_real, rev1_imag)
             if i == 0:
-                if self.verbose:
-                    print("Freq index from: %i", freq_index)
+                logger.debug("Freq index from: %i", freq_index)
             self._sweepdata[freq_index] = (refl / fwd, thru / fwd)
 
-        if self.verbose:
-            print("Freq index to: %i", freq_index)
+        logger.debug("Freq index to: %i", freq_index)
 
-    def readValues(self, value) -> list[str]:
+    def read_values(self, value) -> list[str]:
         # Actually grab the data only when requesting channel 0.
         # The hardware will return all channels which we will store.
         if value == "data 0":
@@ -163,8 +158,7 @@ class NanoVNA_V2(VNA):
                 # 7 seconds for 255 points
                 self.serial.timeout = min(pointstodo, 255) * 0.035 + 0.1
                 while pointstodo > 0:
-                    if self.verbose:
-                        print("reading values")
+                    logger.info("reading values")
                     pointstoread = min(255, pointstodo)
                     # cmd: read FIFO, addr 0x30
                     self.serial.write(
@@ -183,7 +177,7 @@ class NanoVNA_V2(VNA):
                     # timeout secs
                     arr = self.serial.read(nBytes)
                     if nBytes != len(arr):
-                        print("Warning: Expected %d bytes, got %d", nBytes, len(arr))
+                        logger.warning("expected %d bytes, got %d", nBytes, len(arr))
                         # the way to retry on timeout is keep the data
                         # already read then try to read the rest of
                         # the data into the array
@@ -203,8 +197,8 @@ class NanoVNA_V2(VNA):
         idx = 1 if value == "data 1" else 0
         return [f"{str(x[idx].real)} {str(x[idx].imag)}" for x in self._sweepdata]
 
-    def resetSweep(self, start: int, stop: int):
-        self.setSweep(start, stop)
+    def reset_sweep(self, start: int, stop: int):
+        self.set_sweep(start, stop)
 
     def _read_version(self, cmd_0: int, cmd_1: int):
         cmd = pack("<BBBB", _CMD_READ, cmd_0, _CMD_READ, cmd_1)
@@ -215,46 +209,43 @@ class NanoVNA_V2(VNA):
             # in a more predictive way
             resp = self.serial.read(2)
         if len(resp) != 2:
-            print("Timeout reading version registers. Got: %s", resp)
+            logger.error("Timeout reading version registers. Got: %s", resp)
             raise IOError("Timeout reading version registers")
         return Version(f"{resp[0]}.0.{resp[1]}")
 
-    def readVersion(self) -> "Version":
+    def read_version(self) -> "Version":
         result = self._read_version(_ADDR_FW_MAJOR, _ADDR_FW_MINOR)
-        if self.verbose:
-            print("readVersion: %s", result)
+        logger.debug("readVersion: %s", result)
         return result
 
     def read_board_revision(self) -> "Version":
         result = self._read_version(_ADDR_DEVICE_VARIANT, _ADDR_HARDWARE_REVISION)
-        if self.verbose:
-            print("read_board_revision: %s", result)
+        logger.debug("read_board_revision: %s", result)
         return result
 
-    def setSweep(self, start, stop):
+    def set_sweep(self, start, stop):
         step = (stop - start) / (self.datapoints - 1)
-        if start == self.sweepStartHz and step == self.sweepStepHz:
+        if start == self.sweep_start_Hz and step == self.sweep_step_Hz:
             return
-        self.sweepStartHz = start
-        self.sweepStepHz = step
-        if self.verbose:
-            print(
-                "NanoVNAV2: set sweep start %d step %d",
-                self.sweepStartHz,
-                self.sweepStepHz,
-            )
-        self._updateSweep()
+        self.sweep_start_Hz = start
+        self.sweep_step_Hz = step
+        logger.info(
+            "NanoVNAV2: set sweep start %d step %d",
+            self.sweep_start_Hz,
+            self.sweep_step_Hz,
+        )
+        self._update_sweep()
         return
 
-    def _updateSweep(self):
+    def _update_sweep(self):
         s21hack = "S21 hack" in self.features
         cmd = pack(
             "<BBQ",
             _CMD_WRITE8,
             _ADDR_SWEEP_START,
-            max(50000, int(self.sweepStartHz - (self.sweepStepHz * s21hack))),
+            max(50000, int(self.sweep_start_Hz - (self.sweep_step_Hz * s21hack))),
         )
-        cmd += pack("<BBQ", _CMD_WRITE8, _ADDR_SWEEP_STEP, int(self.sweepStepHz))
+        cmd += pack("<BBQ", _CMD_WRITE8, _ADDR_SWEEP_STEP, int(self.sweep_step_Hz))
         cmd += pack("<BBH", _CMD_WRITE2, _ADDR_SWEEP_POINTS, self.datapoints + s21hack)
         cmd += pack("<BBH", _CMD_WRITE2, _ADDR_SWEEP_VALS_PER_FREQ, 1)
         with self.serial.lock:
@@ -278,5 +269,4 @@ class NanoVNA_V2(VNA):
         elif size == 8:
             packet = pack("<BBQ", _CMD_WRITE8, addr, value)
         self.serial.write(packet)
-        if self.verbose:
-            print("set register %02x (size %d) to %x", addr, size, value)
+        logger.debug("set register %02x (size %d) to %x", addr, size, value)

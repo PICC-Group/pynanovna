@@ -1,5 +1,8 @@
+import logging
 import re
 import typing
+
+logger = logging.getLogger(__name__)
 
 
 _RXP = re.compile(
@@ -26,7 +29,7 @@ class _Version(typing.NamedTuple):
 
 def Version(vstring: str = "0.0.0") -> "_Version":
     if (match := _RXP.search(vstring)) is None:
-        print("Unable to parse version: %s", vstring)
+        logger.error("Unable to parse version: %s", vstring)
         return _Version(0, 0, 0, "")
 
     return _Version(

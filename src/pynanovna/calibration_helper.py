@@ -1,6 +1,6 @@
 import time
 
-from VNA import VNA
+from pynanovna import VNA
 
 
 vna = VNA()

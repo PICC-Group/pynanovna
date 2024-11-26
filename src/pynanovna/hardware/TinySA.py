@@ -1,38 +1,39 @@
+import logging
 import struct
+
 import numpy as np
 
 from .Serial import drain_serial, Interface
-from .VNA import VNA
+from .VNABase import VNABase
+
+logger = logging.getLogger(__name__)
 
 
-class TinySA(VNA):
+class TinySA(VNABase):
     name = "tinySA"
     screenwidth = 320
     screenheight = 240
     valid_datapoints = (290,)
 
-    def __init__(self, iface: Interface, verbose=False):
+    def __init__(self, iface: Interface):
         super().__init__(iface)
-        self.verbose = verbose
         self.features = {"Screenshots"}
-        if self.verbose:
-            print("Setting initial start,stop")
+        logger.debug("Setting initial start,stop")
         self.start, self.stop = self._get_running_frequencies()
         self.sweep_max_freq_Hz = 950e6
         self._sweepdata = []
         self.validateInput = False
 
     def _get_running_frequencies(self):
-        if self.verbose:
-            print("Reading values: frequencies")
+        logger.debug("Reading values: frequencies")
         try:
             frequencies = super().readValues("frequencies")
             return frequencies[0], frequencies[-1]
         except Exception as e:
-            print("Warning: %s reading frequencies", e)
-            print("falling back to generic")
+            logger.warning("%s reading frequencies", e)
+            logger.info("falling back to generic")
 
-        return VNA._get_running_frequencies(self)
+        return VNABase._get_running_frequencies(self)
 
     def _capture_data(self) -> bytes:
         timeout = self.serial.timeout
@@ -58,29 +59,27 @@ class TinySA(VNA):
             + ((rgb_array & 0x001F) << 3)
         )
 
-    def resetSweep(self, start: int, stop: int):
+    def reset_sweep(self, start: int, stop: int):
         return
 
-    def setSweep(self, start, stop):
+    def set_sweep(self, start, stop):
         self.start = start
         self.stop = stop
         list(self.exec_command(f"sweep {start} {stop} {self.datapoints}"))
         list(self.exec_command("trigger auto"))
 
-    def readFrequencies(self) -> list[int]:
-        if self.verbose:
-            print("readFrequencies")
+    def read_frequencies(self) -> list[int]:
+        logger.debug("readFrequencies")
         return [int(line) for line in self.exec_command("frequencies")]
 
-    def readValues(self, value) -> list[str]:
+    def read_values(self, value) -> list[str]:
         def conv2float(data: str) -> float:
             try:
                 return 10 ** (float(data.strip()) / 20)
             except ValueError:
                 return 0.0
 
-        if self.verbose:
-            print("Read: %s", value)
+        logger.debug("Read: %s", value)
         if value == "data 0":
             self._sweepdata = [
                 f"{conv2float(line)} 0.0" for line in self.exec_command("data 0")
@@ -97,8 +96,7 @@ class TinySA_Ultra(TinySA):
     def __init__(self, iface: Interface):
         super().__init__(iface)
         self.features = {"Screenshots", "Customizable data points"}
-        if self.verbose:
-            print("Setting initial start,stop")
+        logger.debug("Setting initial start,stop")
         self.start, self.stop = self._get_running_frequencies()
         self.sweep_max_freq_Hz = 5.4e9
         self._sweepdata = []
