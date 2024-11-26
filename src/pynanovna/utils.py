@@ -6,7 +6,7 @@ from .hardware import hardware as hw
 
 def stream_from_csv(
     filename: str, sweepdivider: str = "sweepnumber: ", delay: float = 0.1
-) -> tuple[np.array[complex], np.array[complex], np.array[int]]:
+) -> tuple[list[complex], list[complex], list[int]]:
     """Stream previously recorded data from a csv file.
 
     Args:

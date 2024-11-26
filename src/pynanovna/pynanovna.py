@@ -63,7 +63,7 @@ class VNA:
 
     def single_sweep(
         self,
-    ) -> tuple[np.array[complex], np.array[complex], np.array[int]]:
+    ) -> tuple[list[complex], list[complex], list[int]]:
         """Run a single sweep and return the data.
 
         Returns:
@@ -79,7 +79,7 @@ class VNA:
         s11, s21 = self._apply_calibration(data0, data1, frequencies)
         return s11, s21, frequencies
 
-    def stream(self) -> tuple[np.array[complex], np.array[complex], np.array[int]]:
+    def stream(self) -> tuple[list[complex], list[complex], list[int]]:
         """Creates a data stream from the continuous sweeping.
 
         Yields:
@@ -236,9 +236,9 @@ class VNA:
 
     def _apply_calibration(
         self,
-        raw_s11: np.array[complex],
-        raw_s21: np.array[complex],
-        frequencies: np.array[int],
+        raw_s11: list[complex],
+        raw_s21: list[complex],
+        frequencies: list[int],
     ) -> tuple:
         """Apply calibration to raw data.
 
