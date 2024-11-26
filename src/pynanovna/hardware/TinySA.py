@@ -82,7 +82,8 @@ class TinySA(VNABase):
         logger.debug("Read: %s", value)
         if value == "data 0":
             self._sweepdata = [
-                f"{conv2float(line)} 0.0" for line in self.exec_command("data 0", reduce_wait)
+                f"{conv2float(line)} 0.0"
+                for line in self.exec_command("data 0", reduce_wait)
             ]
         return self._sweepdata
 

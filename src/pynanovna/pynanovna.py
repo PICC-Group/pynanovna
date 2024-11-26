@@ -36,7 +36,7 @@ class VNA:
         self.sweep_points = None
         self.calibration = Calibration()
         self.offset_delay = 0
-        self.reduce_sweep_wait = 0.0
+        self.sweep_wait_reduction = 0.0
         logging.debug("VNA object successfully initialized.")
 
     def set_sweep(self, start: float, stop: float, points: int):
@@ -62,7 +62,7 @@ class VNA:
             + " points."
         )
 
-    def single_sweep(
+    def sweep(
         self,
     ) -> tuple[list[complex], list[complex], list[int]]:
         """Run a single sweep and return the data.
@@ -72,10 +72,16 @@ class VNA:
         """
         frequencies = np.array(self.vna.read_frequencies())
         data0 = np.array(
-            [complex(*map(float, s.split())) for s in self.vna.read_values("data 0", self.reduce_sweep_wait)]
+            [
+                complex(*map(float, s.split()))
+                for s in self.vna.read_values("data 0", self.sweep_wait_reduction)
+            ]
         )
         data1 = np.array(
-            [complex(*map(float, s.split())) for s in self.vna.read_values("data 1", self.reduce_sweep_wait)]
+            [
+                complex(*map(float, s.split()))
+                for s in self.vna.read_values("data 1", self.sweep_wait_reduction)
+            ]
         )
         s11, s21 = self._apply_calibration(data0, data1, frequencies)
         return s11, s21, frequencies
@@ -92,8 +98,8 @@ class VNA:
 
         while True:
             try:
-                raw_data0 = self.vna.read_values("data 0", self.reduce_sweep_wait)
-                raw_data1 = self.vna.read_values("data 1", self.reduce_sweep_wait)
+                raw_data0 = self.vna.read_values("data 0", self.sweep_wait_reduction)
+                raw_data1 = self.vna.read_values("data 1", self.sweep_wait_reduction)
 
                 data0 = np.array(
                     [complex(*map(float, s.split())) for s in raw_data0]
@@ -174,7 +180,7 @@ class VNA:
                 "Make sure you set the sweep to the range you intend to measure in BEFORE calibration."
             )
         assert step in ["short", "open", "load", "isolation", "through"]
-        s11, s21, frequencies = self.single_sweep()
+        s11, s21, frequencies = self.sweep()
         self.calibration.calibration_step(step, s11, s21, frequencies)
         if step == "through":
             logging.debug("Running through step. Here thrurefl is also run.")
@@ -326,8 +332,8 @@ class VNA:
         Args:
             sweep_wait (float): The time to subtract from the standard wait. Defaults to 0.0.
         """
-        assert sweep_wait < self.vna.wait
-        self.reduce_sweep_wait = sweep_wait
+        # assert sweep_wait < self.vna.wait
+        self.sweep_wait_reduction = sweep_wait
 
     def is_connected(self) -> bool:
         """Check if the NanoVNA is connected.

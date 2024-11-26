@@ -31,7 +31,7 @@ vna.set_sweep(2.0e9, 2.8e9, 101)
 #### USAGE ####
 
 # Run a single sweep and retrieve the data.
-data0, data1, freq = vna.single_sweep()
+data0, data1, freq = vna.sweep()
 print("Single sweep done:", data0)
 
 
