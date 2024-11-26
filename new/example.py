@@ -21,7 +21,7 @@ print(vna.info())
 
 
 # Load a premade calibration file. See calibration_helper.py for info on calibration.
-vna.load_calibration("./Calibration_1732611179.9071949.cal")
+vna.load_calibration("./Calibration_file.cal")
 
 
 # Set the sweep range and number of points to measure.
