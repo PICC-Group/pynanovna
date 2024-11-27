@@ -34,7 +34,7 @@ class VNA:
         self.vna = hw.get_VNA(self.iface)
         self.sweep_interval = (None, None)
         self.sweep_points = None
-        self.calibration = Calibration()
+        self.calibration = calibration.Calibration()
         self.offset_delay = 0
         logging.debug("VNA object successfully initialized.")
 
