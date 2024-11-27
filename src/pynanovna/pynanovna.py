@@ -36,7 +36,6 @@ class VNA:
         self.sweep_points = None
         self.calibration = Calibration()
         self.offset_delay = 0
-        self.sweep_wait_reduction = 0.0
         logging.debug("VNA object successfully initialized.")
 
     def set_sweep(self, start: float, stop: float, points: int):
@@ -63,9 +62,13 @@ class VNA:
         )
 
     def sweep(
-        self,
+        self, overwrite_wait: float = 0.05,
     ) -> tuple[list[complex], list[complex], list[int]]:
         """Run a single sweep and return the data.
+
+        Args:
+            overwrite_wait: Do not change if you don't know what youre doing.
+                            This can be used to lower the wait in the hardware functions.
 
         Returns:
             tuple: s11, s21, frequencies
@@ -74,20 +77,24 @@ class VNA:
         data0 = np.array(
             [
                 complex(*map(float, s.split()))
-                for s in self.vna.read_values("data 0", self.sweep_wait_reduction)
+                for s in self.vna.read_values("data 0")
             ]
         )
         data1 = np.array(
             [
                 complex(*map(float, s.split()))
-                for s in self.vna.read_values("data 1", self.sweep_wait_reduction)
+                for s in self.vna.read_values("data 1")
             ]
         )
         s11, s21 = self._apply_calibration(data0, data1, frequencies)
         return s11, s21, frequencies
 
-    def stream(self) -> tuple[list[complex], list[complex], list[int]]:
+    def stream(self, overwrite_wait: float = 0.05,) -> tuple[list[complex], list[complex], list[int]]:
         """Creates a data stream from the continuous sweeping.
+
+        Args:
+            overwrite_wait: Do not change if you don't know what youre doing.
+                            This can be used to lower the wait in the hardware functions.
 
         Yields:
             tuple: Yields a list of data when new data is available. Each datapoint: (s11, s21, frequencies)
@@ -98,8 +105,8 @@ class VNA:
 
         while True:
             try:
-                raw_data0 = self.vna.read_values("data 0", self.sweep_wait_reduction)
-                raw_data1 = self.vna.read_values("data 1", self.sweep_wait_reduction)
+                raw_data0 = self.vna.read_values("data 0")
+                raw_data1 = self.vna.read_values("data 1")
 
                 data0 = np.array(
                     [complex(*map(float, s.split())) for s in raw_data0]
@@ -317,23 +324,11 @@ class VNA:
         """There is a small sleep time in the communication with the NanoVNA, which is needed.
             You can change the sleep time in order to speed up the communication.
             Beware of unexpected errors if setting this to lower than 0.05.
-            See reduce_sweep_wait() for changing just the sweep wait.
 
         Args:
             wait (float): Time in seconds
         """
         self.vna.set_wait(wait)
-
-    def reduce_sweep_wait(self, sweep_wait: float = 0.0):
-        """Instead of changing all waits, you can change just the waits in the functions that read data.
-            This function subtracts time from the waits in the functions that reads data.
-            Do not change it if you do not know what you are doing.
-
-        Args:
-            sweep_wait (float): The time to subtract from the standard wait. Defaults to 0.0.
-        """
-        # assert sweep_wait < self.vna.wait
-        self.sweep_wait_reduction = sweep_wait
 
     def is_connected(self) -> bool:
         """Check if the NanoVNA is connected.
@@ -371,6 +366,4 @@ class VNA:
         self.vna.disconnect()
         if self.vna.connected():
             raise Exception("The VNA was not successfully disconnected.")
-        else:
-            if self.verbose:
-                print("Disconnected VNA.")
+        logging.debug("Disconnected VNA.")

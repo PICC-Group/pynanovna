@@ -1,7 +1,7 @@
 # fmt: off
 import time
 
-from pynanovna import VNA
+from .pynanovna import VNA
 
 ###################### Note ######################
 # This script can be run as a calibration helper.
