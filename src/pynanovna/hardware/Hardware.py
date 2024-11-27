@@ -19,7 +19,7 @@ from .Serial import Interface, drain_serial
 from .SV4401A import SV4401A
 from .SV6301A import SV6301A
 from .TinySA import TinySA, TinySA_Ultra
-from .VNA import VNA
+from .VNABase import VNABase
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ from time import sleep
 
 from .Serial import Interface
 from .Version import Version
-from .VNA import VNA
+from .VNABase import VNABase
 
 if platform.system() != "Windows":
     import tty

@@ -1,3 +1,4 @@
+import logging
 from .NanoVNA_H import NanoVNA_H
 from .Serial import Interface
 

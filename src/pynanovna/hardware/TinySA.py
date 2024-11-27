@@ -4,7 +4,7 @@ import struct
 import numpy as np
 
 from .Serial import Interface, drain_serial
-from .VNA import VNA
+from .VNABase import VNABase
 
 
 class TinySA(VNABase):

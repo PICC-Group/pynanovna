@@ -5,7 +5,7 @@ import numpy as np
 
 from .Serial import Interface, drain_serial
 from .Version import Version
-from .VNA import VNA
+from .VNABase import VNABase
 
 logger = logging.getLogger(__name__)
 
