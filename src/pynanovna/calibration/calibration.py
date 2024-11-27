@@ -7,8 +7,7 @@ from collections import UserDict, defaultdict
 from dataclasses import dataclass
 
 from scipy.interpolate import interp1d
-
-from .RFTools import Datapoint
+import numpy as np
 
 IDEAL_SHORT = complex(-1, 0)
 IDEAL_OPEN = complex(1, 0)
@@ -46,7 +45,7 @@ RXP_CAL_LINE = re.compile(
 logger = logging.getLogger(__name__)
 
 
-def correct_delay(datapoint, frequency, delay: float, reflect: bool = False) -> complex:
+def correct_delay(datapoint: list[complex], frequency, delay: float, reflect: bool = False) -> complex:
     """Correct delay using delayoffset.
 
     Args:
@@ -59,8 +58,8 @@ def correct_delay(datapoint, frequency, delay: float, reflect: bool = False) -> 
         tuple: corrected datapoint
     """
     mult = 2 if reflect else 1
-    corr_data = d.z * cmath.exp(complex(0, 1) * 2 * math.pi * d.freq * delay * -1 * mult)
-    return Datapoint(d.freq, corr_data.real, corr_data.imag)
+    corr_data = datapoint * cmath.exp(complex(0, 1) * 2 * math.pi * frequency * delay * -1 * mult)
+    return corr_data
 
 
 @dataclass
@@ -475,14 +474,14 @@ class Calibration:
 
     def correct11(self, datapoint: complex, frequency):
         i = self.interp
-        s11 = (dp.z - i["e00"](dp.freq)) / ((dp.z * i["e11"](dp.freq)) - i["delta_e"](dp.freq))
-        return Datapoint(dp.freq, s11.real, s11.imag)
+        s11 = (datapoint - i["e00"](frequency)) / ((datapoint * i["e11"](frequency)) - i["delta_e"](frequency))
+        return s11
 
     def correct21(self, datapoint: complex, datapoint11: complex, frequency: int):
         i = self.interp
-        s21 = (dp.z - i["e30"](dp.freq)) / i["e10e32"](dp.freq)
-        s21 = s21 * (i["e10e01"](dp.freq) / (i["e11"](dp.freq) * dp11.z - i["delta_e"](dp.freq)))
-        return Datapoint(dp.freq, s21.real, s21.imag)
+        s21 = (datapoint - i["e30"](frequency)) / i["e10e32"](frequency)
+        s21 = s21 * (i["e10e01"](frequency) / (i["e11"](frequency) * datapoint11 - i["delta_e"](frequency)))
+        return s21
 
     def save(self, filename: str):
         self.dataset.notes = "\n".join(self.notes)
