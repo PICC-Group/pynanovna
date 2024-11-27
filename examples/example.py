@@ -21,7 +21,7 @@ print(vna.info())
 
 
 # Load a premade calibration file. See example_calibration.py for info on calibration.
-#vna.load_calibration("./Calibration_file.cal")
+vna.load_calibration("./Calibration_file.cal")
 
 
 # Set the sweep range and number of points to measure.
@@ -34,7 +34,7 @@ vna.set_sweep(2.0e9, 2.8e9, 101)
 data0, data1, freq = vna.sweep()
 print("Single sweep done:", data0)
 
-quit()
+
 # Stream continuous sweeps and process the data.
 for data0, data1, freq in vna.stream():
     # Use the streamed data inside this loop.
