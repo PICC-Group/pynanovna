@@ -15,7 +15,8 @@ import builtins
 
 builtins.__sphinx_build__ = True # pylint: disable=E1101
 print(sys.executable)
-sys.path.insert(0, os.path.abspath("../src"))
+print(os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath(".."))
 
 
 # -- Project information -----------------------------------------------------
@@ -24,7 +25,7 @@ sys.path.insert(0, os.path.abspath("../src"))
 project = "pynanovna"
 copyright = "2024, PICC Group"
 author = "PICC Group"
-release = "0.0.1"
+release = "1.0.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -60,4 +61,4 @@ templates_path = ["_templates"]
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
+#html_static_path = ["_static"]
