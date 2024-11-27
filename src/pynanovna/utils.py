@@ -1,7 +1,12 @@
+"""
+Utility functions for pynanovna
+"""
+
 import logging
 import time
 import numpy as np
 from .hardware import Hardware as hw
+
 
 
 def stream_from_csv(

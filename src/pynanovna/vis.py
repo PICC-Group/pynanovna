@@ -1,14 +1,16 @@
+"""
+Plotting functions
+"""
+
 from math import pi
 
 import matplotlib.pyplot as plt
-
 
 def plot(
     stream: object,
     axis_mode: str = "first",
     fixed_limits: list[float] = None,
-    log: bool = True,
-):
+    log: bool = True):
     """
     Show a magnitude plot from the data.
 
@@ -21,8 +23,8 @@ def plot(
         fixed_limits (list): A dictionary containing axis limits if axis_mode is 'fixed'.
             Example: [min_s11, max_s11, min_s21, max_s21]
         log (bool): If the magnitude should be log or not.
-
     """
+
     plt.ion()
     fig, ax = plt.subplots(2, 1, figsize=(10, 8))
     fig.tight_layout(pad=4.0)

@@ -1,6 +1,11 @@
+"""
+Main module for the pynanovna package.
+"""
+
 from .hardware import Hardware as hw
 from .calibration import calibration
 
+import builtins
 import logging
 import numpy as np
 import csv
@@ -14,6 +19,9 @@ class VNA:
             vna_index (int): If multiple NanoVNAs are connected you can specify which to use.
             logging_level (str): The level of outputs. 'critical', 'info' or 'debug'. Defaults to 'info'.
         """
+        if builtins.__sphinx_build__:
+            return
+
         logging_level = {"debug": logging.DEBUG, "critical": logging.CRITICAL}.get(
             logging_level, logging.INFO
         )
