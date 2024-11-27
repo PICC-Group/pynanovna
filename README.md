@@ -33,9 +33,9 @@ for s11, s21, frequencies in stream:
     print(s11, s21, frequencies)
 ```
 
-See `src/pynanovna/example.py` for a more detailed example on some use cases of the project.
+See `examples/example.py` for a more detailed example on some use cases of the project.
 
-See `src/pynanovna/example_calibration.py` for details on how to calibrate you NanoVNA.
+See `examples/example_calibration.py` for details on how to calibrate you NanoVNA.
 
 ## 📚 API Reference
 API Reference is available at [pynanovna.readthedocs.io](https://pynanovna.readthedocs.io/en/latest)

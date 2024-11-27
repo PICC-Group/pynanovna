@@ -1,7 +1,7 @@
 import logging
 import time
 import numpy as np
-from .hardware import hardware as hw
+from .hardware import Hardware as hw
 
 
 def stream_from_csv(

@@ -1,10 +1,10 @@
 import pytest
-from ..src.pynanovna.pynanovna import VNA
+import pynanovna
 
 @pytest.fixture
 def vna():
     """Fixture to initialize VNA for each test."""
-    return VNA()
+    return pynanovna.VNA()
 
 def test_initialization(vna):
     """Test VNA initialization and connected status."""

@@ -1,5 +1,5 @@
 # fmt: off
-from src.pynanovna.pynanovna import VNA
+import pynanovna
 from utils import stream_from_csv
 from vis import plot, polar
 
@@ -13,7 +13,7 @@ from vis import plot, polar
 #### SETUP ####
 
 # Create a VNA object to control your NanoVNA.
-vna = VNA()
+vna = pynanovna.VNA()
 
 
 # Get and print some information about your device.

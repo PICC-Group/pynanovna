@@ -1,7 +1,6 @@
 # fmt: off
 import time
-
-from src.pynanovna.pynanovna import VNA
+import pynanovna
 
 ###################### Note ######################
 # This script can be run as a calibration helper.
@@ -9,7 +8,7 @@ from src.pynanovna.pynanovna import VNA
 # how to use the calibation functions.
 ##################################################
 
-vna = VNA() #  Create a vna object.
+vna = pynanovna.VNA() #  Create a vna object.
 
 if not vna.is_connected():
     print("No vna connected. Quitting.")
