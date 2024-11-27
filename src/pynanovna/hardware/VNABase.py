@@ -1,8 +1,11 @@
+import logging
 from time import sleep
 from typing import Iterator
 
 from .Version import Version
 from .Serial import Interface, drain_serial
+
+logger = logging.getLogger(__name__)
 
 DISLORD_BW = {
     10: 363,
@@ -17,7 +20,6 @@ DISLORD_BW = {
     2000: 1,
     4000: 0,
 }
-WAIT = 0.05
 
 
 def _max_retries(bandwidth: int, datapoints: int) -> int:
@@ -26,66 +28,60 @@ def _max_retries(bandwidth: int, datapoints: int) -> int:
     )
 
 
-class VNA:
+class VNABase:
     name = "VNA"
     valid_datapoints = (101, 51, 11)
-    wait = 0.05
     SN = "NOT SUPPORTED"
     sweep_points_max = 101
     sweep_points_min = 11
 
-    def __init__(self, iface: Interface, verbose=False):
+    def __init__(self, iface: Interface):
         self.serial = iface
         self.version = Version("0.0.0")
         self.features = set()
-        self.validateInput = False
+        self.validate_input = False
         self.datapoints = self.valid_datapoints[0]
         self.bandwidth = 1000
         self.bw_method = "ttrftech"
         self.sweep_max_freq_Hz = None
-        self.verbose = verbose
         # [((min_freq, max_freq), [description]]. Order by increasing
         # frequency. Put default output power first.
         self.txPowerRanges = []
+        self.wait = 0.05
         if self.connected():
-            self.version = self.readVersion()
+            self.version = self.read_version()
             self.read_features()
-            if self.verbose:
-                print("Features: %s", self.features)
+            logger.debug("Features: %s", self.features)
             #  cannot read current bandwidth, so set to highest
             #  to get initial sweep fast
             if "Bandwidth" in self.features:
                 self.set_bandwidth(self.get_bandwidths()[-1])
 
     def connect(self):
-        if self.verbose:
-            print("connect %s", self.serial)
+        logger.info("connect %s", self.serial)
         with self.serial.lock:
             self.serial.open()
 
     def disconnect(self):
-        if self.verbose:
-            print("disconnect %s", self.serial)
+        logger.info("disconnect %s", self.serial)
         with self.serial.lock:
             self.serial.close()
 
     def reconnect(self):
         self.disconnect()
-        sleep(WAIT)
+        sleep(self.wait)
         self.connect()
-        sleep(WAIT)
+        sleep(self.wait)
 
-    def exec_command(self, command: str, wait: float = WAIT) -> Iterator[str]:
-        if self.verbose:
-            print("exec_command(%s)", command)
+    def exec_command(self, command: str, overwrite_wait: float = 0.0) -> Iterator[str]:
+        logger.debug("exec_command(%s)", command)
         with self.serial.lock:
             drain_serial(self.serial)
             self.serial.write(f"{command}\r".encode("ascii"))
-            sleep(wait)
+            sleep(min(self.wait, overwrite_wait))
             retries = 0
             max_retries = _max_retries(self.bandwidth, self.datapoints)
-            if self.verbose:
-                print("Max retries: %s", max_retries)
+            logger.debug("Max retries: %s", max_retries)
             while True:
                 line = self.serial.readline()
                 line = line.decode("ascii").strip()
@@ -93,25 +89,21 @@ class VNA:
                     retries += 1
                     if retries > max_retries:
                         raise IOError("too many retries")
-                    sleep(wait)
+                    sleep(min(self.wait, overwrite_wait))
                     continue
                 if line == command:  # suppress echo
                     continue
                 if line.startswith("ch>"):
-                    if self.verbose:
-                        print("Needed retries: %s", retries)
+                    logger.debug("Needed retries: %s", retries)
                     break
                 yield line
 
     def read_features(self):
         result = " ".join(self.exec_command("help")).split()
-        if self.verbose:
-            print("result:\n%s", result)
-        if "capture" in result:
-            self.features.add("Screenshots")
+        logger.debug("result:\n%s", result)
         if "sn:" in result:
             self.features.add("SN")
-            self.SN = self.getSerialNumber()
+            self.SN = self.get_serial_number()
         if "bandwidth" in result:
             self.features.add("Bandwidth")
             result = " ".join(list(self.exec_command("bandwidth")))
@@ -121,8 +113,7 @@ class VNA:
             self.features.add("Customizable data points")
 
     def get_bandwidths(self) -> list[int]:
-        if self.verbose:
-            print("get bandwidths")
+        logger.debug("get bandwidths")
         if self.bw_method == "dislord":
             return list(DISLORD_BW.keys())
         result = " ".join(list(self.exec_command("bandwidth")))
@@ -141,10 +132,10 @@ class VNA:
             raise IOError(f"set_bandwith({bandwidth}: {result}")
         self.bandwidth = bandwidth
 
-    def readFrequencies(self) -> list[int]:
-        return [int(f) for f in self.readValues("frequencies")]
+    def read_frequencies(self) -> list[int]:
+        return [int(f) for f in self.read_values("frequencies")]
 
-    def resetSweep(self, start: int, stop: int):
+    def reset_sweep(self, start: int, stop: int):
         pass
 
     def _get_running_frequencies(self):
@@ -158,13 +149,13 @@ class VNA:
     def connected(self) -> bool:
         return self.serial.is_open
 
-    def getFeatures(self) -> set[str]:
+    def get_features(self) -> set[str]:
         return self.features
 
-    def getCalibration(self) -> str:
+    def get_calibration(self) -> str:
         return " ".join(list(self.exec_command("cal")))
 
-    def flushSerialBuffers(self):
+    def flush_serial_buffers(self):
         if not self.connected():
             return
         with self.serial.lock:
@@ -174,31 +165,34 @@ class VNA:
             self.serial.reset_output_buffer()
             sleep(0.1)
 
-    def readFirmware(self) -> str:
+    def read_firmware(self) -> str:
         result = "\n".join(list(self.exec_command("info")))
-        if self.verbose:
-            print("result:\n%s", result)
+        logger.debug("result:\n%s", result)
         return result
 
-    def readValues(self, value) -> list[str]:
-        if self.verbose:
-            print("VNA reading %s", value)
-        result = list(self.exec_command(value, wait=0))
-        if self.verbose:
-            print("VNA done reading %s (%d values)", value, len(result))
+    def read_values(self, value, overwrite_wait: float = 0.0) -> list[str]:
+        logger.debug("VNA reading %s", value)
+        result = list(self.exec_command(value, min(self.wait, overwrite_wait)))
+        logger.debug("VNA done reading %s (%d values)", value, len(result))
         return result
 
-    def readVersion(self) -> "Version":
+    def read_version(self) -> "Version":
         result = list(self.exec_command("version"))
-        if self.verbose:
-            print("result:\n%s", result)
+        logger.debug("result:\n%s", result)
         return Version(result[0])
 
-    def setSweep(self, start, stop):
+    def set_sweep(self, start, stop):
         list(self.exec_command(f"sweep {start} {stop} {self.datapoints}"))
 
-    def setTXPower(self, freq_range, power_desc):
+    def set_TX_power(self, freq_range, power_desc):
         raise NotImplementedError()
 
-    def getSerialNumber(self) -> str:
+    def get_serial_number(self) -> str:
         return " ".join(list(self.exec_command("sn")))
+
+    def set_wait(self, new_wait: float):
+        if new_wait < 0.05:
+            logger.critical(
+                "Wait is set to lower than the standard 0.05 seconds, this might cause problems with the serial communication depending on how low it is set and what system you operate."
+            )
+        self.wait = new_wait

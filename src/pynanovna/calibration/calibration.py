@@ -1,13 +1,13 @@
+import logging
 import cmath
 import math
 import os
 import re
+import numpy as np
 from collections import defaultdict, UserDict
 from dataclasses import dataclass
 
 from scipy.interpolate import interp1d
-
-from .RFTools import Datapoint
 
 
 IDEAL_SHORT = complex(-1, 0)
@@ -43,13 +43,26 @@ RXP_CAL_LINE = re.compile(
     re.VERBOSE,
 )
 
+logger = logging.getLogger(__name__)
 
-def correct_delay(d: Datapoint, delay: float, reflect: bool = False):
+
+def correct_delay(datapoint, frequency, delay: float, reflect: bool = False) -> complex:
+    """Correct delay using delayoffset.
+
+    Args:
+        datapoint (complex): The datapoint.
+        frequency (int): The frequency for the datapoint.
+        delay (float): Delay.
+        reflect (bool): Defaults to False.
+
+    Returns:
+        tuple: corrected datapoint
+    """
     mult = 2 if reflect else 1
-    corr_data = d.z * cmath.exp(
-        complex(0, 1) * 2 * math.pi * d.freq * delay * -1 * mult
+    corr_data = datapoint * cmath.exp(
+        complex(0, 1) * 2 * math.pi * frequency * delay * -1 * mult
     )
-    return Datapoint(d.freq, corr_data.real, corr_data.imag)
+    return complex(corr_data.real, corr_data.imag)
 
 
 @dataclass
@@ -123,7 +136,7 @@ class CalDataSet(UserDict):
     def __str__(self):
         return (
             (
-                "# Calibration data for NanoVNA-Saver\n"
+                "# Calibration data for pynanovna\n"
                 + "\n".join([f"! {note}" for note in self.notes.splitlines()])
                 + "\n"
                 + "# Hz ShortR ShortI OpenR OpenI LoadR LoadI"
@@ -143,7 +156,7 @@ class CalDataSet(UserDict):
         cal = m.groupdict()
         columns = {col[:-1] for col in cal.keys() if cal[col] and col != "freq"}
         if "through" in columns and header == "sol":
-            print("Through data with sol header. %i: %s", line_nr, line)
+            logger.warning("Through data with sol header. %i: %s", line_nr, line)
         # fix short data (without thrurefl)
         if "thrurefl" in columns and "isolation" not in columns:
             cal["isolationr"] = cal["thrureflr"]
@@ -152,11 +165,8 @@ class CalDataSet(UserDict):
         for name in columns:
             self.insert(
                 name,
-                Datapoint(
-                    int(cal["freq"]),
-                    float(cal[f"{name}r"]),
-                    float(cal[f"{name}i"]),
-                ),
+                complex(float(cal[f"{name}r"]), float(cal[f"{name}i"])),
+                int(cal["freq"]),
             )
 
     def from_str(self, text: str) -> "CalDataSet":
@@ -173,7 +183,7 @@ class CalDataSet(UserDict):
                 continue
             if m := RXP_CAL_HEADER.search(line):
                 if header:
-                    print("Duplicate header in cal data. %i: %s", i, line)
+                    logger.warning("Duplicate header in cal data. %i: %s", i, line)
                 header = "through" if m.group("through") else "sol"
                 continue
             if not line or line.startswith("#"):
@@ -181,14 +191,31 @@ class CalDataSet(UserDict):
 
             m = RXP_CAL_LINE.search(line)
             if not m:
-                print("Illegal caldata. Line %i: %s", i, line)
+                logger.warning("Illegal caldata. Line %i: %s", i, line)
                 continue
             if not header:
-                print("Caldata without having read header: %i: %s", i, line)
+                logger.warning("Caldata without having read header: %i: %s", i, line)
             self._append_match(m, header, line, i)
         return self
 
-    def insert(self, name: str, dp: Datapoint):
+    def insert(self, name: str, datapoint: complex, frequency: int):
+        """Insert a datapoint in the dataset.
+
+        Args:
+            name (str): Name of dataset.
+            Must be one of:
+                "short",
+                "open",
+                "load",
+                "through",
+                "thrurefl",
+                "isolation"
+            datapoint (complex): The datapoint to insert.
+            frequency (int): The frequency of the datapoint.
+
+        Raises:
+            KeyError: If the name is not valid.
+        """
         if name not in {
             "short",
             "open",
@@ -198,9 +225,8 @@ class CalDataSet(UserDict):
             "isolation",
         }:
             raise KeyError(name)
-        freq = dp.freq
-        setattr(self.data[freq], name, (dp.z))
-        self.data[freq].freq = freq
+        setattr(self.data[frequency], name, (datapoint))
+        self.data[frequency].freq = frequency
 
     def frequencies(self) -> list[int]:
         return sorted(self.data.keys())
@@ -243,9 +269,25 @@ class Calibration:
 
         self.source = "Manual"
 
-    def insert(self, name: str, data: list[Datapoint]):
-        for dp in data:
-            self.dataset.insert(name, dp)
+    def calibration_step(
+        self, name: str, s11: np.array, s21: np.array, frequencies: np.array
+    ):
+        """Register data from one calibration step.
+
+        Args:
+            name (str): The step.
+            s11 (np.array): Raw s11 data.
+            s21 (np.array): Raw s21 data.
+            frequencies (np.array): Frequencies of the sweep.
+        """
+        if name in {"through", "isolation"}:
+            self.insert(name, s21, frequencies)
+        else:
+            self.insert(name, s11, frequencies)
+
+    def insert(self, name: str, data: np.array, frequencies: np.array):
+        for datapoint, frequency in zip(data, frequencies):
+            self.dataset.insert(name, datapoint, frequency)
 
     def size(self) -> int:
         return len(self.dataset.frequencies())
@@ -253,10 +295,20 @@ class Calibration:
     def data_size(self, name) -> int:
         return self.dataset.size_of(name)
 
-    def isValid1Port(self) -> bool:
+    def is_valid_1_port(self) -> bool:
+        """Check if the port has been calibrated.
+
+        Returns:
+            bool: If the port is calibrated.
+        """
         return self.dataset.complete1port()
 
-    def isValid2Port(self) -> bool:
+    def is_valid_2_port(self) -> bool:
+        """Check if the port has been calibrated.
+
+        Returns:
+            bool: If the port is calibrated.
+        """
         return self.dataset.complete2port()
 
     def _calc_port_1(self, freq: int, cal: CalData):
@@ -305,25 +357,25 @@ class Calibration:
         cal.e22 = gm7 / (gm7 * cal.e11 * gt**2 + cal.e10e01 * gt**2)
         cal.e10e32 = (gm4 - gm6) * (1 - cal.e11 * cal.e22 * gt**2) / gt
 
-    def calc_corrections(self, verbose=False):
-        if not self.isValid1Port():
-            print("Tried to calibrate from insufficient data.")
+    def calc_corrections(self):
+        if not self.is_valid_1_port():
+            logger.warning("Tried to calibrate from insufficient data.")
             raise ValueError(
                 "All of short, open and load calibration steps"
                 "must be completed for calibration to be applied."
             )
-        if verbose:
-            print("Calculating calibration for %d points.", self.size())
+        logger.debug("Calculating calibration for %d points.", self.size())
 
         for freq, caldata in self.dataset.items():
             try:
                 self._calc_port_1(freq, caldata)
-                if self.isValid2Port():
+                if self.is_valid_2_port():
                     self._calc_port_2(freq, caldata)
             except ZeroDivisionError as exc:
                 self.isCalculated = False
-                print(
-                    "Division error - did you use the same measurement for two of short, open and load?"
+                logger.error(
+                    "Division error - did you use the same measurement"
+                    " for two of short, open and load?"
                 )
                 raise ValueError(
                     f"Two of short, open and load returned the same"
@@ -332,13 +384,12 @@ class Calibration:
 
         self.gen_interpolation()
         self.isCalculated = True
-        if verbose:
-            print("Calibration correctly calculated.")
+        logger.debug("Calibration correctly calculated.")
 
     def gamma_short(self, freq: int) -> complex:
         if self.cal_element.short_is_ideal:
             return IDEAL_SHORT
-        print("Using short calibration set values.")
+        logger.debug("Using short calibration set values.")
         cal_element = self.cal_element
         Zsp = complex(
             0.0,
@@ -359,11 +410,10 @@ class Calibration:
             * cmath.exp(complex(0.0, -4.0 * math.pi * freq * cal_element.short_length))
         )
 
-    def gamma_open(self, freq: int, verbose=False) -> complex:
+    def gamma_open(self, freq: int) -> complex:
         if self.cal_element.open_is_ideal:
             return IDEAL_OPEN
-        if verbose:
-            print("Using open calibration set values.")
+        logger.debug("Using open calibration set values.")
         cal_element = self.cal_element
         Zop = complex(
             0.0,
@@ -381,11 +431,10 @@ class Calibration:
             complex(0.0, -4.0 * math.pi * freq * cal_element.open_length)
         )
 
-    def gamma_load(self, freq: int, verbose=False) -> complex:
+    def gamma_load(self, freq: int) -> complex:
         if self.cal_element.load_is_ideal:
             return IDEAL_LOAD
-        if verbose:
-            print("Using load calibration set values.")
+        logger.debug("Using load calibration set values.")
         cal_element = self.cal_element
         Zl = complex(cal_element.load_r, 0.0)
         if cal_element.load_c > 0.0:
@@ -401,11 +450,10 @@ class Calibration:
             * cmath.exp(complex(0.0, -4 * math.pi * freq * cal_element.load_length))
         )
 
-    def gamma_through(self, freq: int, verbose=False) -> complex:
+    def gamma_through(self, freq: int) -> complex:
         if self.cal_element.through_is_ideal:
             return IDEAL_THROUGH
-        if verbose:
-            print("Using through calibration set values.")
+        logger.debug("Using through calibration set values.")
         cal_element = self.cal_element
         return cmath.exp(
             complex(0.0, -2.0 * math.pi * cal_element.through_length * freq)
@@ -480,24 +528,25 @@ class Calibration:
             ),
         }
 
-    def correct11(self, dp: Datapoint):
+    def correct11(self, datapoint: complex, frequency):
         i = self.interp
-        s11 = (dp.z - i["e00"](dp.freq)) / (
-            (dp.z * i["e11"](dp.freq)) - i["delta_e"](dp.freq)
+        s11 = (datapoint - i["e00"](frequency)) / (
+            (datapoint * i["e11"](frequency)) - i["delta_e"](frequency)
         )
-        return Datapoint(dp.freq, s11.real, s11.imag)
+        return s11
 
-    def correct21(self, dp: Datapoint, dp11: Datapoint):
+    def correct21(self, datapoint: complex, datapoint11: complex, frequency: int):
         i = self.interp
-        s21 = (dp.z - i["e30"](dp.freq)) / i["e10e32"](dp.freq)
+        s21 = (datapoint - i["e30"](frequency)) / i["e10e32"](frequency)
         s21 = s21 * (
-            i["e10e01"](dp.freq) / (i["e11"](dp.freq) * dp11.z - i["delta_e"](dp.freq))
+            i["e10e01"](frequency)
+            / (i["e11"](frequency) * datapoint11 - i["delta_e"](frequency))
         )
-        return Datapoint(dp.freq, s21.real, s21.imag)
+        return s21
 
     def save(self, filename: str):
         self.dataset.notes = "\n".join(self.notes)
-        if not self.isValid1Port():
+        if not self.is_valid_1_port():
             raise ValueError("Not a valid calibration")
         with open(filename, mode="w", encoding="utf-8") as calfile:
             calfile.write(str(self.dataset))

@@ -1,264 +1,359 @@
 from .hardware import Hardware as hw
-from .Calibration import Calibration
-from .CalibrationGuide import CalibrationGuide
-from .SweepWorker import SweepWorker
-from .Touchstone import Touchstone
-from .RFTools import Datapoint
-from datetime import datetime
-import threading
+from .calibration import calibration
+
+import logging
+import numpy as np
 import csv
-from time import sleep
 
 
-class NanoVNAWorker:
-    def __init__(self, vna_index=0, verbose=False):
-        """Initialize a NanoVNA object.
+class VNA:
+    def __init__(self, vna_index: int = 0, logging_level: str = "info"):
+        """Initialize a VNA object for the NanoVNA.
 
         Args:
-            vna_index (int): Number of NanoVNAs to connect, at the moment multiple VNAs are not supported. Defaults to 0.
-            verbose (bool): Print information. Defaults to False.
+            vna_index (int): If multiple NanoVNAs are connected you can specify which to use.
+            logging_level (str): The level of outputs. 'critical', 'info' or 'debug'. Defaults to 'info'.
         """
-        self.verbose = verbose
-        self.playback_mode = False
+        logging_level = {"debug": logging.DEBUG, "critical": logging.CRITICAL}.get(
+            logging_level, logging.INFO
+        )
+        logging.basicConfig(
+            level=logging_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        )
+        logging.debug("Initializing the VNA object.")
         try:
             self.iface = hw.get_interfaces()[vna_index]
             self.iface.open()
+            self.connected = True
         except IndexError:
-            print("NanoVNA not found, is it connected? Entering playback mode.")
-            self.playback_mode = True
-        if not self.playback_mode:
-            self.vna = hw.get_VNA(self.iface)
-            self.calibration = Calibration()
-            self.touchstone = Touchstone("./output")  #  Fix this.
-            self.worker = SweepWorker(
-                self.vna, self.calibration, self.touchstone, verbose=verbose
-            )
-            self.CalibrationGuide = CalibrationGuide(
-                self.calibration, self.worker, verbose
-            )
-            if self.verbose:
-                print("VNA is connected: ", self.vna.connected())
-                print("Firmware: ", self.vna.readFirmware())
-                print("Features: ", self.vna.read_features())
-                print("Version", self.vna.name)
-
-    def calibrate(
-        self,
-        load_file=False,
-        savefile=None,
-    ):
-        """Run the calibration guide and calibrate the NanoVNA.
-
-        Args:
-            load_file (bool, optional): Path to existing calibration. Defaults to False.
-            savefile (path): Path to save the calibration. Defaults to None.
-        """
-        if self.playback_mode:
-            print("Cannot calibrate in playback mode. Connect NanoVNA and restart.")
+            logging.critical("NanoVNA not found, is it connected and turned on?")
+            self.connected = False
             return
-        if load_file:
-            self.CalibrationGuide.loadCalibration(load_file)
-            return
-        proceed = self.CalibrationGuide.automaticCalibration()
-        while proceed:
-            proceed = self.CalibrationGuide.automaticCalibrationStep()
-        if savefile is None:
-            savefile = f"./Calibration_file_{datetime.now()}.cal"
-        self.CalibrationGuide.saveCalibration(savefile)
 
-    def set_sweep(self, start, stop, segments, points):
+        self.vna = hw.get_VNA(self.iface)
+        self.sweep_interval = (None, None)
+        self.sweep_points = None
+        self.calibration = calibration.Calibration()
+        self.offset_delay = 0
+        logging.debug("VNA object successfully initialized.")
+
+    def set_sweep(self, start: float, stop: float, points: int):
         """Set the sweep parameters.
 
         Args:
             start (int): The start frequnecy.
             stop (int): The stop frequency.
-            segments (int): Number of segments.
-            points (int): Number of points.
+            points (int): Number of points in the sweep.
         """
-        if self.playback_mode:
-            print("Cannot set sweep in playback mode. Connect NanoVNA and restart.")
-            return
-        self.worker.sweep.update(start, stop, segments, points)
-        self.worker.init_data()
         self.vna.datapoints = points
-        if self.verbose:
-            print(
-                "Sweep set from "
-                + str(self.worker.sweep.start / 1e9)
-                + "e9"
-                + " to "
-                + str(self.worker.sweep.end / 1e9)
-                + "e9"
-            )
+        self.vna.set_sweep(start, stop)
+        self.sweep_interval = (start, stop)
+        self.sweep_points = points
+        logging.debug(
+            "Sweep has been set from "
+            + str(self.sweep_interval[0] / 1e9)
+            + "e9"
+            + " to "
+            + str(self.sweep_interval[1] / 1e9)
+            + "e9, with "
+            + str(self.sweep_points)
+            + " points."
+        )
 
-    def single_sweep(self):
-        if self.playback_mode:
-            print("Cannot do a sweep in playback mode. Connect NanoVNA and restart.")
-            return
-        self.worker.sweep.set_mode("SINGLE")
-        self.worker.run()
-        return self._get_data()
-
-    def stream_data(self, data_file=False, start_delay=2.0):
-        """Creates a data stream from the continuous sweeping. (Or a previously recorded file.)
-
-        Args:
-            data_file (string): Path to a previously recorded csv file to stream from. Defaults to False.
-            start_delay (float): Time to wait for the stream to start before yielding values.
-
-        Yields:
-            list: Yields a list of data when new data is available.
-        """
-        try:
-            if not data_file:
-                if self.playback_mode:
-                    print(
-                        "Cannot stream data from NanoVNA in playback mode. Connect NanoVNA and restart."
-                    )
-                    return
-
-                self._stream_data()
-                sleep(start_delay)
-
-                stream = self._access_data()
-            else:
-                stream = self._csv_streamer(data_file)
-
-            for data in stream:
-                yield data  # Yield each piece of data as it comes
-
-        except KeyboardInterrupt:
-            self._stop_worker()
-        except Exception as e:
-            if self.verbose:
-                print("Exception in data stream: ", e)
-        finally:
-            if self.verbose:
-                print("Stopping worker.")
-            self._stop_worker()
-
-    def _stream_data(self):
-        """Starts a thread for the sweep workers run function."""
-        self.worker.sweep.set_mode("CONTINOUS")
-        # Start the worker in a new thread
-        self.worker_thread = threading.Thread(target=self.worker.run)
-        self.worker_thread.start()
-
-    def _csv_streamer(self, filename, sweepdivider="Sweepno"):
-        """Stream previously recorded data from a csv file.
+    def sweep(
+        self,
+        overwrite_wait: float = 0.05,
+    ) -> tuple[list[complex], list[complex], list[int]]:
+        """Run a single sweep and return the data.
 
         Args:
-            filename (string): Path to the csv file.
-            sweepdivider (string): Used to identify where sweeps end and start in the csv file.
-
-        Yields:
-            tuple: ([s11], [s21])
-        """
-        try:
-            with open(filename) as f:
-                data = f.readlines()
-                package = ([], [])
-                for i, line in enumerate(data):
-                    if i != 0:
-                        if sweepdivider in line:
-                            if package != ([], []):
-                                yield package
-                            package = ([], [])
-                            continue
-                        data_vals = [complex(val) for val in line.split(",")]
-                        package[0].append(
-                            Datapoint(
-                                data_vals[-1].real,
-                                data_vals[0].real,
-                                data_vals[0].imag,
-                            )
-                        )
-                        package[1].append(
-                            Datapoint(
-                                data_vals[-1].real,
-                                data_vals[1].real,
-                                data_vals[1].imag,
-                            )
-                        )
-        except KeyboardInterrupt:
-            return
-        except Exception as e:
-            print(e)
-
-    def _access_data(self):
-        """Fetches the data from the sweep worker as long as it is running a sweep.
-
-        Yields:
-            list: List of data from the latest sweep.
-        """
-        while self.worker.running:
-            yield self._get_data()
-
-    def _stop_worker(self):
-        """Stop the sweep worker and kill the stream."""
-        if self.verbose:
-            print("NanoVNASaverHeadless is stopping sweepworker now.")
-        if not self.playback_mode:
-            self.worker.running = False
-            self.worker_thread.join()
-
-    def _get_data(self):
-        """Get data from the sweep worker.
+            overwrite_wait: Do not change if you don't know what youre doing.
+                            This can be used to lower the wait in the hardware functions.
 
         Returns:
-            list: Real Reflection, Imaginary Reflection, Real Through, Imaginary Through, Frequency
+            tuple: s11, s21, frequencies
         """
-        return self.worker.data11, self.worker.data21
+        frequencies = np.array(self.vna.read_frequencies())
+        data0 = np.array(
+            [complex(*map(float, s.split())) for s in self.vna.read_values("data 0")]
+        )
+        data1 = np.array(
+            [complex(*map(float, s.split())) for s in self.vna.read_values("data 1")]
+        )
+        s11, s21 = self._apply_calibration(data0, data1, frequencies)
+        return s11, s21, frequencies
 
-    def save_csv(self, filename, skip_start=5, sweepdivider="Sweepno"):
+    def stream(
+        self,
+        overwrite_wait: float = 0.05,
+    ) -> tuple[list[complex], list[complex], list[int]]:
+        """Creates a data stream from the continuous sweeping.
+
+        Args:
+            overwrite_wait: Do not change if you don't know what youre doing.
+                            This can be used to lower the wait in the hardware functions.
+
+        Yields:
+            tuple: Yields a list of data when new data is available. Each datapoint: (s11, s21, frequencies)
+        """
+        frequencies = np.array(self.vna.read_frequencies())
+        logging.debug("Frequencies read: %d values", len(frequencies))
+        logging.debug("Starting stream.")
+
+        while True:
+            try:
+                raw_data0 = self.vna.read_values("data 0")
+                raw_data1 = self.vna.read_values("data 1")
+
+                data0 = np.array(
+                    [complex(*map(float, s.split())) for s in raw_data0]
+                ).copy()
+                data1 = np.array(
+                    [complex(*map(float, s.split())) for s in raw_data1]
+                ).copy()
+
+                s11, s21 = self._apply_calibration(data0, data1, frequencies)
+
+                yield s11, s21, frequencies
+
+            except KeyboardInterrupt:
+                logging.debug("KeyboardInterrupt in stream, killing loop.")
+                break
+            except Exception as e:
+                logging.critical("Exception in data stream: %s", e, exc_info=True)
+                break
+
+    def stream_to_csv(
+        self,
+        filename: str,
+        nr_sweeps: int = float("INF"),
+        skip_start: int = 5,
+        sweepdivider: str = "sweepnumber: ",
+    ):
         """Function to save the stream to a csv file.
 
         Args:
             filename (str): The filename to save to.
             nr_sweeps (int): Number of sweeps to run. Defaults to 10.
             skip_start (int): The NanoVNA usually gives bad data in the beginning, therefore this data can be skipped. Defaults to 5.
+            sweepdivider (str): A string to write between every sweep data to divide.
 
         Raises:
             TypeError: If the filename is not a string.
         """
-        if self.playback_mode:
-            print("Cannot run sweeps in playback mode. Connect NanoVNA and restart.")
-            return
         try:
             if not isinstance(filename, str):
                 raise TypeError("Filename must be a string")
             if not filename.endswith(".csv"):
                 filename += ".csv"
             file_path = filename
-            old_data = [[Datapoint(1, 1.0, 1.0)]]
-            counter = 0  #  Counter because NanoVNA sends out incorrect data the first few times.
+            counter = 0
             with open(file_path, mode="w", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["Refl", "Thru", "Freq"])
-                data_stream = self.stream_data()
-                for new_data in data_stream:
-                    if new_data[0][0].im != old_data[0][0].im:
-                        writer.writerow([sweepdivider, counter])
-                        counter += 1  # Increment counter when new_data is different
-                        if counter > skip_start:
-                            for data_index in range(len(new_data[0])):
-                                writer.writerow(
-                                    [
-                                        new_data[:][0][data_index].z,
-                                        new_data[:][1][data_index].z,
-                                        new_data[:][0][data_index].freq,
-                                    ]
-                                )
-                    old_data = (
-                        new_data[0].copy(),
-                        new_data[1].copy(),
-                    )  # Update old_data every iteration to the latest data
-
+                writer.writerow(["S11", "S21", "Freq"])
+                logging.debug("File created, starting stream.")
+                for data in self.stream():
+                    if counter - skip_start > nr_sweeps:
+                        break
+                    writer.writerow([sweepdivider, counter])
+                    counter += 1
+                    if counter > skip_start:
+                        for data_index in range(len(data[0])):
+                            writer.writerow(
+                                [
+                                    data[:][0][data_index],
+                                    data[:][1][data_index],
+                                    data[:][2][data_index],
+                                ]
+                            )
         except KeyboardInterrupt:
+            logging.debug("KeyboardInterrupt in stream, killing loop.")
             return
 
         except Exception as e:
-            print("An error occurred: ", e)
+            logging.critical("Exception in data stream: ", exc_info=e)
+
+    def calibration_step(self, step: str):
+        """Runs a sweep and uses the data for calibration.
+
+        Args:
+            step (str): The calibration step.
+        """
+        if step == "short":
+            logging.info(
+                "Make sure you set the sweep to the range you intend to measure in BEFORE calibration."
+            )
+        assert step in ["short", "open", "load", "isolation", "through"]
+        s11, s21, frequencies = self.sweep()
+        self.calibration.calibration_step(step, s11, s21, frequencies)
+        if step == "through":
+            logging.debug("Running through step. Here thrurefl is also run.")
+            self.calibration.calibration_step("thrurefl", s11, s21, frequencies)
+            logging.info(
+                "If you have done all the steps correctly, run the calibrate() function to enable the calibration."
+            )
+
+    def calibrate(self):
+        """Calculates a calibration from the steps.
+
+        Raises:
+            Exception: If the calibration is not successfully calculated.
+        """
+        self.calibration.cal_element.short_is_ideal = True
+        self.calibration.cal_element.open_is_ideal = True
+        self.calibration.cal_element.load_is_ideal = True
+        self.calibration.cal_element.through_is_ideal = True
+
+        try:
+            self.calibration.calc_corrections()
+            logging.info("Calibration successfully enabled.")
+        except ValueError as e:
+            raise Exception(
+                f"Error applying calibration: {str(e)}\nApplying calibration failed."
+            )
+
+    def save_calibration(self, filename: str):
+        """Save the current calibration.
+
+        Args:
+            filename (str): The filename for the calibration.
+        """
+        if not self.calibration.isCalculated:
+            raise Exception("Cannot save an unapplied calibration state.")
+        try:
+            self.calibration.save(filename)
+            return True
+        except Exception as e:
+            print("Save failed: ", e)
+            return False
+
+    def load_calibration(self, filename: str):
+        """Load a previous calibration from a file.
+
+        Args:
+            filename (str): The file containing the previous calibration.
+        """
+        if filename:
+            self.calibration.load(filename)
+        if not self.calibration.is_valid_1_port():
+            raise Exception("Not a valid port.")
+
+        for i, name in enumerate(
+            ("short", "open", "load", "through", "isolation", "thrurefl")
+        ):
+            if i == 2 and not self.calibration.is_valid_2_port():
+                break
+        self.calibrate()
+
+    def _apply_calibration(
+        self,
+        raw_s11: list[complex],
+        raw_s21: list[complex],
+        frequencies: list[int],
+    ) -> tuple[list[complex]]:
+        """Apply calibration to raw data.
+
+        Args:
+            raw_s11 (np.array): s11 data.
+            raw_s21 (np.array): s21 data.
+
+        Returns:
+            tuple: calibrated s-parameter data.
+        """
+        s11 = raw_s11.copy()
+        s21 = raw_s21.copy()
+
+        is_calculated = self.calibration.isCalculated
+        is_valid_1port = self.calibration.is_valid_1_port()
+        is_valid_2port = self.calibration.is_valid_2_port()
+
+        if not is_calculated:
+            logging.critical(
+                "No calibration has been applied, it is strongly recommended to calibrate you NanoVNA."
+            )
+
+        if is_calculated and is_valid_1port:
+            s11 = [
+                self.calibration.correct11(datapoint, frequencies[i])
+                for i, datapoint in enumerate(raw_s11)
+            ]
+        else:
+            logging.critical(
+                "1 port calibration not valid, it is recommended to re-calibrate."
+            )
+
+        if is_valid_2port:
+            s21 = [
+                self.calibration.correct21(datapoint, raw_s11[i], frequencies[i])
+                for i, datapoint in enumerate(raw_s21)
+            ]
+        else:
+            logging.critical(
+                "2 port calibration not valid, it is recommended to re-calibrate."
+            )
+
+        # Apply offset delay if needed.
+        if self.offset_delay != 0:
+            s11 = [
+                self.calibration.correct_delay(
+                    datapoint, frequencies[i], self.offset_delay, reflect=True
+                )
+                for i, datapoint in enumerate(s11)
+            ]
+            s21 = [
+                self.calibration.correct_delay(
+                    datapoint, frequencies[i], self.offset_delay
+                )
+                for i, datapoint in enumerate(s21)
+            ]
+
+        return s11, s21
+
+    def set_offset_delay(self, delay: float):
+        """Manually set offset delay. This is used in calibration.
+
+        Args:
+            delay (float): The delay.
+        """
+        self.offset_delay = delay
+
+    def set_vna_wait(self, wait: float):
+        """There is a small sleep time in the communication with the NanoVNA, which is needed.
+            You can change the sleep time in order to speed up the communication.
+            Beware of unexpected errors if setting this to lower than 0.05.
+
+        Args:
+            wait (float): Time in seconds
+        """
+        self.vna.set_wait(wait)
+
+    def is_connected(self) -> bool:
+        """Check if the NanoVNA is connected.
+
+        Returns:
+            bool: If it is connected or not.
+        """
+        return self.vna.connected()
+
+    def info(self) -> dict:
+        """Get info about your NanoVNA and the connection to it.
+
+        Returns:
+            dict: A dictionary with the info.
+        """
+        specifications = {
+            "Serial Number": self.vna.SN,
+            "Version": str(self.vna.version),
+            "Features": self.vna.features,
+            "Bandwidth Method": self.vna.bw_method,
+            "Bandwidth": self.vna.bandwidth,
+            "Valid Datapoints": self.vna.valid_datapoints,
+            "Minimum Sweep Points": self.vna.sweep_points_min,
+            "Interface": str(self.iface),
+            "Info": hw.get_info(self.iface),
+        }
+        return specifications
 
     def kill(self):
         """Disconnect the NanoVNA.
@@ -266,15 +361,7 @@ class NanoVNAWorker:
         Raises:
             Exception: If the NanoVNA was not successfully disconnected.
         """
-        if self.playback_mode:
-            print("Cannot kill in playback mode. Connect NanoVNA and restart.")
-            return
-        if self.worker.running:
-            self._stop_worker()
         self.vna.disconnect()
         if self.vna.connected():
             raise Exception("The VNA was not successfully disconnected.")
-        else:
-            if self.verbose:
-                print("Disconnected VNA.")
-            return
+        logging.debug("Disconnected VNA.")

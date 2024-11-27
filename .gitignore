@@ -1,3 +1,7 @@
 __pycache__/
 *__pycache__/
 .DS_Store
+*.cal
+build/
+src/pynanovna.egg-info/
+.pytest_cache/

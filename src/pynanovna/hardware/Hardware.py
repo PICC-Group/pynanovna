@@ -1,3 +1,4 @@
+import logging
 import platform
 from collections import namedtuple
 from time import sleep
@@ -6,7 +7,7 @@ import serial
 from serial.tools import list_ports
 from serial.tools.list_ports_common import ListPortInfo
 
-from .VNA import VNA
+from .VNABase import VNABase
 from .AVNA import AVNA
 from .NanoVNA import NanoVNA
 from .NanoVNA_F import NanoVNA_F
@@ -20,6 +21,8 @@ from .SV4401A import SV4401A
 from .SV6301A import SV6301A
 from .Serial import drain_serial, Interface
 
+logger = logging.getLogger(__name__)
+
 USBDevice = namedtuple("Device", "vid pid name")
 
 USBDEVICETYPES = (
@@ -29,7 +32,6 @@ USBDEVICETYPES = (
 )
 RETRIES = 3
 TIMEOUT = 0.2
-WAIT = 0.05
 
 NAME2DEVICE = {
     "S-A-A-2": NanoVNA_V2,
@@ -71,7 +73,7 @@ def usb_typename(device: ListPortInfo) -> str:
 # Get list of interfaces with VNAs connected
 
 
-def get_interfaces(verbose=False) -> list[Interface]:
+def get_interfaces() -> list[Interface]:
     interfaces = []
     # serial like usb interfaces
     for d in list_ports.comports():
@@ -79,14 +81,13 @@ def get_interfaces(verbose=False) -> list[Interface]:
             d = _fix_v2_hwinfo(d)
         if not (typename := usb_typename(d)):
             continue
-        if verbose:
-            print(
-                "Found %s USB:(%04x:%04x) on port %s",
-                typename,
-                d.vid,
-                d.pid,
-                d.device,
-            )
+        logger.debug(
+            "Found %s USB:(%04x:%04x) on port %s",
+            typename,
+            d.vid,
+            d.pid,
+            d.device,
+        )
         iface = Interface("serial", typename)
         iface.port = d.device
         iface.open()
@@ -94,17 +95,15 @@ def get_interfaces(verbose=False) -> list[Interface]:
         iface.close()
         interfaces.append(iface)
 
-    if verbose:
-        print("Interfaces: %s", interfaces)
+    logger.debug("Interfaces: %s", interfaces)
     return interfaces
 
 
-def get_portinfos(verbose=False) -> list[str]:
+def get_portinfos() -> list[str]:
     portinfos = []
     # serial like usb interfaces
     for d in list_ports.comports():
-        if verbose:
-            print("Found USB:(%04x:%04x) on port %s", d.vid, d.pid, d.device)
+        logger.debug("Found USB:(%04x:%04x) on port %s", d.vid, d.pid, d.device)
         iface = Interface("serial", "DEBUG")
         iface.port = d.device
         iface.open()
@@ -114,20 +113,20 @@ def get_portinfos(verbose=False) -> list[str]:
     return portinfos
 
 
-def get_VNA(iface: Interface) -> VNA:
+def get_VNA(iface: Interface) -> VNABase:
+    # serial_port.timeout = TIMEOUT
     return NAME2DEVICE[iface.comment](iface)
 
 
-def get_comment(iface: Interface, verbose=False) -> str:
-    if verbose:
-        print("Finding correct VNA type...")
+def get_comment(iface: Interface) -> str:
+    logger.info("Finding correct VNA type...")
     with iface.lock:
         vna_version = detect_version(iface)
 
     if vna_version == "v2":
         return "S-A-A-2"
-    if verbose:
-        print("Finding firmware variant...")
+
+    logger.info("Finding firmware variant...")
     info = get_info(iface)
     for search, name in (
         ("AVNA + Teensy", "AVNA"),
@@ -144,12 +143,11 @@ def get_comment(iface: Interface, verbose=False) -> str:
     ):
         if info.find(search) >= 0:
             return name
-    if verbose:
-        print("Did not recognize NanoVNA type from firmware.")
+    logger.warning("Did not recognize NanoVNA type from firmware.")
     return "Unknown"
 
 
-def detect_version(serial_port: serial.Serial, verbose=False) -> str:
+def detect_version(serial_port: serial.Serial, wait: float = 0.05) -> str:
     data = ""
     for i in range(RETRIES):
         drain_serial(serial_port)
@@ -157,7 +155,7 @@ def detect_version(serial_port: serial.Serial, verbose=False) -> str:
         # workaround for some UnicodeDecodeError ... repeat ;-)
         drain_serial(serial_port)
         serial_port.write("\r".encode("ascii"))
-        sleep(0.05)
+        sleep(wait)
 
         data = serial_port.read(128).decode("ascii")
         if data.startswith("ch> "):
@@ -169,13 +167,12 @@ def detect_version(serial_port: serial.Serial, verbose=False) -> str:
             return "vh"
         if data.startswith("2"):
             return "v2"
-        if verbose:
-            print("Retry detection: %s", i + 1)
-    print("No VNA detected. Hardware responded to CR with: %s", data)
+        logger.debug("Retry detection: %s", i + 1)
+    logger.error("No VNA detected. Hardware responded to CR with: %s", data)
     return ""
 
 
-def get_info(serial_port: serial.Serial, verbose=False) -> str:
+def get_info(serial_port: serial.Serial, wait: float = 0.05) -> str:
     for _ in range(RETRIES):
         drain_serial(serial_port)
         serial_port.write("info\r".encode("ascii"))
@@ -188,15 +185,13 @@ def get_info(serial_port: serial.Serial, verbose=False) -> str:
                 retries += 1
                 if retries > RETRIES:
                     return ""
-                sleep(WAIT)
+                sleep(wait)
                 continue
             if line == "info":  # suppress echo
                 continue
             if line.startswith("ch>"):
-                if verbose:
-                    print("Needed retries: %s", retries)
+                logger.debug("Needed retries: %s", retries)
                 break
             lines.append(line)
-        if verbose:
-            print("Info output: %s", lines)
+        logger.debug("Info output: %s", lines)
         return "\n".join(lines)
