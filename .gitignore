@@ -5,3 +5,4 @@ __pycache__/
 build/
 src/pynanovna.egg-info/
 .pytest_cache/
+dist/
