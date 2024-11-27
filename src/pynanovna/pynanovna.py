@@ -62,7 +62,8 @@ class VNA:
         )
 
     def sweep(
-        self, overwrite_wait: float = 0.05,
+        self,
+        overwrite_wait: float = 0.05,
     ) -> tuple[list[complex], list[complex], list[int]]:
         """Run a single sweep and return the data.
 
@@ -75,21 +76,18 @@ class VNA:
         """
         frequencies = np.array(self.vna.read_frequencies())
         data0 = np.array(
-            [
-                complex(*map(float, s.split()))
-                for s in self.vna.read_values("data 0")
-            ]
+            [complex(*map(float, s.split())) for s in self.vna.read_values("data 0")]
         )
         data1 = np.array(
-            [
-                complex(*map(float, s.split()))
-                for s in self.vna.read_values("data 1")
-            ]
+            [complex(*map(float, s.split())) for s in self.vna.read_values("data 1")]
         )
         s11, s21 = self._apply_calibration(data0, data1, frequencies)
         return s11, s21, frequencies
 
-    def stream(self, overwrite_wait: float = 0.05,) -> tuple[list[complex], list[complex], list[int]]:
+    def stream(
+        self,
+        overwrite_wait: float = 0.05,
+    ) -> tuple[list[complex], list[complex], list[int]]:
         """Creates a data stream from the continuous sweeping.
 
         Args:
