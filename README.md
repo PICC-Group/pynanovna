@@ -3,6 +3,7 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pynanovna)
 ![PyPI - License](https://img.shields.io/pypi/l/pynanovna)
 ![GitHub Repo stars](https://img.shields.io/github/stars/PICC-Group/pynanovna)
+[![DOI](https://zenodo.org/badge/791647347.svg)](https://doi.org/10.5281/zenodo.14231110)
 
 
 This is a python module for using a NanoVNA.
