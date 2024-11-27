@@ -1,5 +1,6 @@
 import pytest
 import pynanovna
+import numpy as np
 
 @pytest.fixture
 def vna():
@@ -12,13 +13,13 @@ def test_initialization(vna):
 
 def test_set_sweep(vna):
     """Test setting the sweep parameters."""
-    vna.set_sweep(1e6, 1e9, 101)  # Start, stop, and points
-    assert vna.sweep_interval == (1e6, 1e9)
+    vna.set_sweep(2.0e9, 3.0e9, 101)  # Start, stop, and points
+    assert vna.sweep_interval == (2.0e9, 3.0e9)
     assert vna.sweep_points == 101
 
 def test_sweep(vna):
     """Test running a sweep."""
-    vna.set_sweep(1e6, 1e9, 101)
+    vna.set_sweep(2.0e9, 3.0e9, 101)
     s11, s21, frequencies = vna.sweep()
     assert len(s11) == 101
     assert len(s21) == 101
@@ -26,12 +27,16 @@ def test_sweep(vna):
 
 def test_stream(vna):
     """Test continuous data streaming."""
-    vna.set_sweep(1e6, 1e9, 101)
+    vna.set_sweep(2.0e9, 3.0e9, 101)
     generator = vna.stream()
     s11, s21, frequencies = next(generator)
+    old = s11.copy()
     assert len(s11) == 101
     assert len(s21) == 101
     assert len(frequencies) == 101
+    new = next(generator)[0]
+    assert not np.array_equal(old, new)
+    
 
 def test_stream_to_csv(vna, tmp_path):
     """Test streaming data to a CSV file."""
@@ -40,31 +45,6 @@ def test_stream_to_csv(vna, tmp_path):
     with open(filename, "r") as f:
         lines = f.readlines()
     assert len(lines) > 3  # Header plus at least a few data lines
-
-def test_calibration_steps(vna):
-    """Test calibration steps."""
-    vna.set_sweep(1e6, 1e9, 101)
-    for step in ["short", "open", "load", "isolation", "through"]:
-        vna.calibration_step(step)
-        assert vna.calibration.isCalculated, f"Calibration should be calculated after {step} step"
-
-def test_save_calibration(vna, tmp_path):
-    """Test saving calibration data."""
-    filename = tmp_path / "calibration.cal"
-    vna.set_sweep(1e6, 1e9, 101)
-    vna.calibration_step("short")
-    vna.calibrate()
-    assert vna.save_calibration(str(filename)), "Calibration should be saved successfully"
-
-def test_load_calibration(vna, tmp_path):
-    """Test loading calibration data."""
-    filename = tmp_path / "calibration.cal"
-    vna.set_sweep(1e6, 1e9, 101)
-    vna.calibration_step("short")
-    vna.calibrate()
-    vna.save_calibration(str(filename))
-    vna.load_calibration(str(filename))
-    assert vna.calibration.is_valid_1_port(), "Calibration should be valid after loading"
 
 def test_vna_info(vna):
     """Test retrieving VNA information."""

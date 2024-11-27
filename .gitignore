@@ -4,3 +4,4 @@ __pycache__/
 *.cal
 build/
 src/pynanovna.egg-info/
+.pytest_cache/
