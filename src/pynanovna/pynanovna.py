@@ -313,7 +313,7 @@ class VNA:
         return s11, s21
 
     def set_offset_delay(self, delay: float):
-        """Set offset delay. This is used in calibration.
+        """Manually set offset delay. This is used in calibration.
 
         Args:
             delay (float): The delay.
