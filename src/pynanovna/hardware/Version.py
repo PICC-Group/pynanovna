@@ -2,9 +2,6 @@ import logging
 import re
 import typing
 
-logger = logging.getLogger(__name__)
-
-
 _RXP = re.compile(
     r"""^
     \D*

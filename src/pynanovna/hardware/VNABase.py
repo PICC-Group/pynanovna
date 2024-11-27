@@ -2,8 +2,8 @@ import logging
 from time import sleep
 from typing import Iterator
 
-from .Version import Version
 from .Serial import Interface, drain_serial
+from .Version import Version
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,7 @@ DISLORD_BW = {
 
 
 def _max_retries(bandwidth: int, datapoints: int) -> int:
-    return round(
-        20 + 20 * (datapoints / 101) + (1000 / bandwidth) ** 1.30 * (datapoints / 101)
-    )
+    return round(20 + 20 * (datapoints / 101) + (1000 / bandwidth) ** 1.30 * (datapoints / 101))
 
 
 class VNABase:
