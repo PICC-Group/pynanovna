@@ -1,6 +1,6 @@
-import logging
+from math import pi
+
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def plot(
@@ -94,14 +94,8 @@ def plot(
     plt.show()
 
 
-def polar(stream: object, normalize: bool = False):
-    """
-    Create polar plots for S11 and S21 data.
-
-    Args:
-        stream: The data stream to plot.
-        normalize (bool): If True, normalize the data based on the first value.
-    """
+def polar(stream, normalize=False):
+    """ Show polar plot of the data. WIP. """
     plt.ion()
     fig, ax = plt.subplots(1, 2, subplot_kw=dict(polar=True), figsize=(12, 6))
     fig.tight_layout(pad=4.0)

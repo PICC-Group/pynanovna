@@ -1,7 +1,5 @@
-import logging
-
-from .Serial import Interface
 from .NanoVNA_H import NanoVNA_H
+from .Serial import Interface
 
 logger = logging.getLogger(__name__)
 

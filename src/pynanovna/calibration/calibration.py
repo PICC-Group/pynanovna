@@ -3,12 +3,12 @@ import cmath
 import math
 import os
 import re
-import numpy as np
-from collections import defaultdict, UserDict
+from collections import UserDict, defaultdict
 from dataclasses import dataclass
 
 from scipy.interpolate import interp1d
 
+from .RFTools import Datapoint
 
 IDEAL_SHORT = complex(-1, 0)
 IDEAL_OPEN = complex(1, 0)
@@ -59,10 +59,8 @@ def correct_delay(datapoint, frequency, delay: float, reflect: bool = False) -> 
         tuple: corrected datapoint
     """
     mult = 2 if reflect else 1
-    corr_data = datapoint * cmath.exp(
-        complex(0, 1) * 2 * math.pi * frequency * delay * -1 * mult
-    )
-    return complex(corr_data.real, corr_data.imag)
+    corr_data = d.z * cmath.exp(complex(0, 1) * 2 * math.pi * d.freq * delay * -1 * mult)
+    return Datapoint(d.freq, corr_data.real, corr_data.imag)
 
 
 @dataclass
@@ -140,11 +138,7 @@ class CalDataSet(UserDict):
                 + "\n".join([f"! {note}" for note in self.notes.splitlines()])
                 + "\n"
                 + "# Hz ShortR ShortI OpenR OpenI LoadR LoadI"
-                + (
-                    " ThroughR ThroughI ThrureflR" " ThrureflI IsolationR IsolationI\n"
-                    if self.complete2port()
-                    else "\n"
-                )
+                + (" ThroughR ThroughI ThrureflR" " ThrureflI IsolationR IsolationI\n" if self.complete2port() else "\n")
                 + "\n".join([f"{self.data.get(freq)}" for freq in self.frequencies()])
                 + "\n"
             )
@@ -320,29 +314,10 @@ class Calibration:
         gm2 = cal.open
         gm3 = cal.load
 
-        denominator = (
-            g1 * (g2 - g3) * gm1
-            + g2 * g3 * gm2
-            - g2 * g3 * gm3
-            - (g2 * gm2 - g3 * gm3) * g1
-        )
-        cal.e00 = (
-            -(
-                (g2 * gm3 - g3 * gm3) * g1 * gm2
-                - (g2 * g3 * gm2 - g2 * g3 * gm3 - (g3 * gm2 - g2 * gm3) * g1) * gm1
-            )
-            / denominator
-        )
-        cal.e11 = (
-            (g2 - g3) * gm1 - g1 * (gm2 - gm3) + g3 * gm2 - g2 * gm3
-        ) / denominator
-        cal.delta_e = (
-            -(
-                (g1 * (gm2 - gm3) - g2 * gm2 + g3 * gm3) * gm1
-                + (g2 * gm3 - g3 * gm3) * gm2
-            )
-            / denominator
-        )
+        denominator = g1 * (g2 - g3) * gm1 + g2 * g3 * gm2 - g2 * g3 * gm3 - (g2 * gm2 - g3 * gm3) * g1
+        cal.e00 = -((g2 * gm3 - g3 * gm3) * g1 * gm2 - (g2 * g3 * gm2 - g2 * g3 * gm3 - (g3 * gm2 - g2 * gm3) * g1) * gm1) / denominator
+        cal.e11 = ((g2 - g3) * gm1 - g1 * (gm2 - gm3) + g3 * gm2 - g2 * gm3) / denominator
+        cal.delta_e = -((g1 * (gm2 - gm3) - g2 * gm2 + g3 * gm3) * gm1 + (g2 * gm3 - g3 * gm3) * gm2) / denominator
 
     def _calc_port_2(self, freq: int, cal: CalData):
         gt = self.gamma_through(freq)
@@ -357,14 +332,12 @@ class Calibration:
         cal.e22 = gm7 / (gm7 * cal.e11 * gt**2 + cal.e10e01 * gt**2)
         cal.e10e32 = (gm4 - gm6) * (1 - cal.e11 * cal.e22 * gt**2) / gt
 
-    def calc_corrections(self):
-        if not self.is_valid_1_port():
-            logger.warning("Tried to calibrate from insufficient data.")
-            raise ValueError(
-                "All of short, open and load calibration steps"
-                "must be completed for calibration to be applied."
-            )
-        logger.debug("Calculating calibration for %d points.", self.size())
+    def calc_corrections(self, verbose=False):
+        if not self.isValid1Port():
+            print("Tried to calibrate from insufficient data.")
+            raise ValueError("All of short, open and load calibration steps" "must be completed for calibration to be applied.")
+        if verbose:
+            print("Calculating calibration for %d points.", self.size())
 
         for freq, caldata in self.dataset.items():
             try:
@@ -373,14 +346,8 @@ class Calibration:
                     self._calc_port_2(freq, caldata)
             except ZeroDivisionError as exc:
                 self.isCalculated = False
-                logger.error(
-                    "Division error - did you use the same measurement"
-                    " for two of short, open and load?"
-                )
-                raise ValueError(
-                    f"Two of short, open and load returned the same"
-                    f" values at frequency {freq}Hz."
-                ) from exc
+                print("Division error - did you use the same measurement for two of short, open and load?")
+                raise ValueError(f"Two of short, open and load returned the same" f" values at frequency {freq}Hz.") from exc
 
         self.gen_interpolation()
         self.isCalculated = True
@@ -396,19 +363,10 @@ class Calibration:
             2.0
             * math.pi
             * freq
-            * (
-                cal_element.short_l0
-                + cal_element.short_l1 * freq
-                + cal_element.short_l2 * freq**2
-                + cal_element.short_l3 * freq**3
-            ),
+            * (cal_element.short_l0 + cal_element.short_l1 * freq + cal_element.short_l2 * freq**2 + cal_element.short_l3 * freq**3),
         )
         # Referencing https://arxiv.org/pdf/1606.02446.pdf (18) - (21)
-        return (
-            (Zsp / 50.0 - 1.0)
-            / (Zsp / 50.0 + 1.0)
-            * cmath.exp(complex(0.0, -4.0 * math.pi * freq * cal_element.short_length))
-        )
+        return (Zsp / 50.0 - 1.0) / (Zsp / 50.0 + 1.0) * cmath.exp(complex(0.0, -4.0 * math.pi * freq * cal_element.short_length))
 
     def gamma_open(self, freq: int) -> complex:
         if self.cal_element.open_is_ideal:
@@ -420,16 +378,9 @@ class Calibration:
             2.0
             * math.pi
             * freq
-            * (
-                cal_element.open_c0
-                + cal_element.open_c1 * freq
-                + cal_element.open_c2 * freq**2
-                + cal_element.open_c3 * freq**3
-            ),
+            * (cal_element.open_c0 + cal_element.open_c1 * freq + cal_element.open_c2 * freq**2 + cal_element.open_c3 * freq**3),
         )
-        return ((1.0 - 50.0 * Zop) / (1.0 + 50.0 * Zop)) * cmath.exp(
-            complex(0.0, -4.0 * math.pi * freq * cal_element.open_length)
-        )
+        return ((1.0 - 50.0 * Zop) / (1.0 + 50.0 * Zop)) * cmath.exp(complex(0.0, -4.0 * math.pi * freq * cal_element.open_length))
 
     def gamma_load(self, freq: int) -> complex:
         if self.cal_element.load_is_ideal:
@@ -444,20 +395,14 @@ class Calibration:
             )
         if cal_element.load_l > 0.0:
             Zl = Zl + complex(0.0, 2 * math.pi * freq * cal_element.load_l)
-        return (
-            (Zl / 50.0 - 1.0)
-            / (Zl / 50.0 + 1.0)
-            * cmath.exp(complex(0.0, -4 * math.pi * freq * cal_element.load_length))
-        )
+        return (Zl / 50.0 - 1.0) / (Zl / 50.0 + 1.0) * cmath.exp(complex(0.0, -4 * math.pi * freq * cal_element.load_length))
 
     def gamma_through(self, freq: int) -> complex:
         if self.cal_element.through_is_ideal:
             return IDEAL_THROUGH
         logger.debug("Using through calibration set values.")
         cal_element = self.cal_element
-        return cmath.exp(
-            complex(0.0, -2.0 * math.pi * cal_element.through_length * freq)
-        )
+        return cmath.exp(complex(0.0, -2.0 * math.pi * cal_element.through_length * freq))
 
     def gen_interpolation(self):
         (freq, e00, e11, delta_e, e10e01, e30, e22, e10e32) = zip(
@@ -530,19 +475,14 @@ class Calibration:
 
     def correct11(self, datapoint: complex, frequency):
         i = self.interp
-        s11 = (datapoint - i["e00"](frequency)) / (
-            (datapoint * i["e11"](frequency)) - i["delta_e"](frequency)
-        )
-        return s11
+        s11 = (dp.z - i["e00"](dp.freq)) / ((dp.z * i["e11"](dp.freq)) - i["delta_e"](dp.freq))
+        return Datapoint(dp.freq, s11.real, s11.imag)
 
     def correct21(self, datapoint: complex, datapoint11: complex, frequency: int):
         i = self.interp
-        s21 = (datapoint - i["e30"](frequency)) / i["e10e32"](frequency)
-        s21 = s21 * (
-            i["e10e01"](frequency)
-            / (i["e11"](frequency) * datapoint11 - i["delta_e"](frequency))
-        )
-        return s21
+        s21 = (dp.z - i["e30"](dp.freq)) / i["e10e32"](dp.freq)
+        s21 = s21 * (i["e10e01"](dp.freq) / (i["e11"](dp.freq) * dp11.z - i["delta_e"](dp.freq)))
+        return Datapoint(dp.freq, s21.real, s21.imag)
 
     def save(self, filename: str):
         self.dataset.notes = "\n".join(self.notes)

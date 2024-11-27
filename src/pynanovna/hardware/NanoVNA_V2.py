@@ -4,8 +4,8 @@ from struct import pack, unpack_from
 from time import sleep
 
 from .Serial import Interface
-from .VNABase import VNABase
 from .Version import Version
+from .VNA import VNA
 
 if platform.system() != "Windows":
     import tty
@@ -42,9 +42,7 @@ _ADF4350_TXPOWER_DESC_MAP = {
     2: "3dB attenuation",
     3: "Maximum",
 }
-_ADF4350_TXPOWER_DESC_REV_MAP = {
-    value: key for key, value in _ADF4350_TXPOWER_DESC_MAP.items()
-}
+_ADF4350_TXPOWER_DESC_REV_MAP = {value: key for key, value in _ADF4350_TXPOWER_DESC_MAP.items()}
 
 
 class NanoVNA_V2(VNABase):
@@ -107,11 +105,8 @@ class NanoVNA_V2(VNABase):
         logger.debug("readFirmware: %s", result)
         return result
 
-    def read_frequencies(self) -> list[int]:
-        return [
-            int(self.sweep_start_Hz + i * self.sweep_step_Hz)
-            for i in range(self.datapoints)
-        ]
+    def readFrequencies(self) -> list[int]:
+        return [int(self.sweepStartHz + i * self.sweepStepHz) for i in range(self.datapoints)]
 
     def _read_pointstoread(self, pointstoread, arr) -> None:
         freq_index = -1
