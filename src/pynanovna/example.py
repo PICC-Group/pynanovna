@@ -1,5 +1,5 @@
 # fmt: off
-from .pynanovna import VNA
+from src.pynanovna.pynanovna import VNA
 from utils import stream_from_csv
 from vis import plot, polar
 
@@ -20,7 +20,7 @@ vna = VNA()
 print(vna.info())
 
 
-# Load a premade calibration file. See calibration_helper.py for info on calibration.
+# Load a premade calibration file. See example_calibration.py for info on calibration.
 vna.load_calibration("./Calibration_file.cal")
 
 
