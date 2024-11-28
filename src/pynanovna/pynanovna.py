@@ -1,3 +1,6 @@
+"""
+Main module for the pynanovna package.
+"""
 from .hardware import Hardware as hw
 from .calibration import calibration
 
