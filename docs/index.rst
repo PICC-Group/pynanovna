@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to the pynanovna documentation!
-=====================================
+=======================================
 
 This is a Python module for using a NanoVNA. It supports streaming, saving, calibrating, and plotting data from various NanoVNAs. 
 
@@ -28,8 +28,9 @@ Example
    for s11, s21, frequencies in stream:
       print(s11, s21, frequencies)
 
+
 See ``examples/example.py`` for a more detailed example on using pynanovna.
-See ``examples/example_calibration.py``for an example on how to calibrate using pynanovna.
+See ``examples/example_calibration.py`` for an example on how to calibrate using pynanovna.
 
 .. toctree::
    :hidden:
