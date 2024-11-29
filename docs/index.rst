@@ -6,8 +6,7 @@
 Welcome to the pynanovna documentation!
 =====================================
 
-This is a Python module for using a NanoVNA. It supports streaming, saving, calibrating, and plotting data from
-various NanoVNAs. 
+This is a Python module for using a NanoVNA. It supports streaming, saving, calibrating, and plotting data from various NanoVNAs. 
 
 Installation
 ------------
