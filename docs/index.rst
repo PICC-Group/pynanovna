@@ -6,29 +6,45 @@
 Welcome to PyNanoVNA's documentation!
 =====================================
 
-This is a python module for using a NanoVNA. It has support for streaming, processing and plotting data from
-various NanoVNAs. 
-
-Installation
-------------
-
-Install with ``pip install pynanovna`` or ``pip3 install pynanovna``.
-
-Example
--------
-
-::
-
-   import pynanovna
-
-   worker = pynanovna.NanoVNAWorker()
-   stream = worker.stream_data()
-   for sweep in stream:
-       print(sweep)
+# *pynanovna*
+![PyPI - Version](https://img.shields.io/pypi/v/pynanovna)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/pynanovna)
+![PyPI - License](https://img.shields.io/pypi/l/pynanovna)
+![GitHub Repo stars](https://img.shields.io/github/stars/PICC-Group/pynanovna)
+[![DOI](https://zenodo.org/badge/791647347.svg)](https://doi.org/10.5281/zenodo.14231110)
 
 
-See ``src/pynanovna/example.py`` for a more detailed example on some use
-cases of the project.
+This is a python module for using a NanoVNA.
+
+
+## 🌟 Features
+    ✅ Supporting almost all NanoVNAs.
+    📶 Run single sweeps of s11 & s21 data.
+    🔄 Stream continuous sweeps.
+    🛠️ Calibrate your NanoVNA.
+    📊 Interactive, real-time plots of data.
+    📁 Record to CSV files.
+
+
+## 🛠️ Installation
+Install with `pip install pynanovna`.
+
+## 🚀 Example
+```
+import pynanovna
+
+vna = pynanovna.VNA()
+
+vna.set_sweep(2.0e9, 2.6e9, 101)
+
+stream = vna.stream()
+for s11, s21, frequencies in stream:
+    print(s11, s21, frequencies)
+```
+
+See `examples/example.py` for a more detailed example on some use cases of the project.
+
+See `examples/example_calibration.py` for details on how to calibrate you NanoVNA.
 
 .. toctree::
    :hidden:
