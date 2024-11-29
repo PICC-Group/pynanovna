@@ -3,32 +3,33 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyNanoVNA's documentation!
+Welcome to the pynanovna documentation!
 =====================================
 
-This is a python module for using a NanoVNA. It has support for streaming, processing and plotting data from
-various NanoVNAs. 
+This is a Python module for using a NanoVNA. It supports streaming, saving, calibrating, and plotting data from various NanoVNAs. 
 
 Installation
 ------------
 
-Install with ``pip install pynanovna`` or ``pip3 install pynanovna``.
+Install with ``pip install pynanovna``.
 
 Example
 -------
 
 ::
-
    import pynanovna
 
-   worker = pynanovna.NanoVNAWorker()
-   stream = worker.stream_data()
-   for sweep in stream:
-       print(sweep)
+   vna = pynanovna.VNA()
 
+   vna.set_sweep(start_frequency, end_frequency, number_of_points)
 
-See ``src/pynanovna/example.py`` for a more detailed example on some use
-cases of the project.
+   stream = vna.stream()
+
+   for s11, s21, frequencies in stream:
+      print(s11, s21, frequencies)
+
+See ``examples/example.py`` for a more detailed example on using pynanovna.
+See ``examples/example_calibration.py``for an example on how to calibrate using pynanovna.
 
 .. toctree::
    :hidden:
