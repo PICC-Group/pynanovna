@@ -3,48 +3,34 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyNanoVNA's documentation!
+Welcome to the pynanovna documentation!
 =====================================
 
-# *pynanovna*
-![PyPI - Version](https://img.shields.io/pypi/v/pynanovna)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/pynanovna)
-![PyPI - License](https://img.shields.io/pypi/l/pynanovna)
-![GitHub Repo stars](https://img.shields.io/github/stars/PICC-Group/pynanovna)
-[![DOI](https://zenodo.org/badge/791647347.svg)](https://doi.org/10.5281/zenodo.14231110)
+This is a Python module for using a NanoVNA. It supports streaming, saving, calibrating, and plotting data from
+various NanoVNAs. 
 
+Installation
+------------
 
-This is a python module for using a NanoVNA.
+Install with ``pip install pynanovna``.
 
+Example
+-------
 
-## 🌟 Features
-    ✅ Supporting almost all NanoVNAs.
-    📶 Run single sweeps of s11 & s21 data.
-    🔄 Stream continuous sweeps.
-    🛠️ Calibrate your NanoVNA.
-    📊 Interactive, real-time plots of data.
-    📁 Record to CSV files.
+::
+   import pynanovna
 
+   vna = pynanovna.VNA()
 
-## 🛠️ Installation
-Install with `pip install pynanovna`.
+   vna.set_sweep(start_frequency, end_frequency, number_of_points)
 
-## 🚀 Example
-```
-import pynanovna
+   stream = vna.stream()
 
-vna = pynanovna.VNA()
+   for s11, s21, frequencies in stream:
+      print(s11, s21, frequencies)
 
-vna.set_sweep(2.0e9, 2.6e9, 101)
-
-stream = vna.stream()
-for s11, s21, frequencies in stream:
-    print(s11, s21, frequencies)
-```
-
-See `examples/example.py` for a more detailed example on some use cases of the project.
-
-See `examples/example_calibration.py` for details on how to calibrate you NanoVNA.
+See ``examples/example.py`` for a more detailed example on using pynanovna.
+See ``examples/example_calibration.py``for an example on how to calibrate using pynanovna.
 
 .. toctree::
    :hidden:
