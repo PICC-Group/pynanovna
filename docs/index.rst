@@ -17,6 +17,7 @@ Example
 -------
 
 ::
+
    import pynanovna
 
    vna = pynanovna.VNA()
@@ -30,6 +31,7 @@ Example
 
 
 See ``examples/example.py`` for a more detailed example on using pynanovna.
+
 See ``examples/example_calibration.py`` for an example on how to calibrate using pynanovna.
 
 .. toctree::
