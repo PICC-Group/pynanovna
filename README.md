@@ -27,7 +27,7 @@ import pynanovna
 
 vna = pynanovna.VNA()
 
-vna.set_sweep(2.0e9, 2.6e9, 101)
+vna.set_sweep(1.0e9, 1.4e9, 101)
 
 stream = vna.stream()
 for s11, s21, frequencies in stream:
