@@ -1,4 +1,4 @@
-![pynanovna](pynanovna.svg)
+![pynanovna](logo.svg)
 
 ![PyPI - Version](https://img.shields.io/pypi/v/pynanovna)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pynanovna)
