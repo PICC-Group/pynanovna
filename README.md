@@ -1,4 +1,5 @@
-# *pynanovna*
+![pynanovna](pynanovna.svg)
+
 ![PyPI - Version](https://img.shields.io/pypi/v/pynanovna)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pynanovna)
 ![PyPI - License](https://img.shields.io/pypi/l/pynanovna)
