@@ -1,13 +1,18 @@
-![pynanovna](logo.svg)
+<picture>
+  <source srcset="logo_dark.svg" media="(prefers-color-scheme: dark)">
+  <source srcset="logo_light.svg" media="(prefers-color-scheme: light)">
+  <img src="logo_dark.svg" alt="Logo">
+</picture>
+
 
 ![PyPI - Version](https://img.shields.io/pypi/v/pynanovna)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pynanovna)
 ![PyPI - License](https://img.shields.io/pypi/l/pynanovna)
-![GitHub Repo stars](https://img.shields.io/github/stars/PICC-Group/pynanovna)
 [![DOI](https://zenodo.org/badge/791647347.svg)](https://doi.org/10.5281/zenodo.14231110)
+<!-- ![GitHub Repo stars](https://img.shields.io/github/stars/PICC-Group/pynanovna) -->
 
 
-This is a python module for using a NanoVNA.
+This is a Python module for NanoVNA.
 
 
 ## 🌟 Features
