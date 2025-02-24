@@ -111,7 +111,7 @@ def get_VNA(iface: Interface) -> VNABase:
 
 
 def get_comment(iface: Interface) -> str:
-    logger.info("Finding correct VNA type...")
+    logger.debug("Finding correct VNA type...")
     with iface.lock:
         vna_version = detect_version(iface)
 

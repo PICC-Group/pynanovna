@@ -25,7 +25,7 @@ class VNA:
             level=logging_level,
             format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         )
-        logging.debug("Initializing the VNA object.")
+        logging.info("Initializing the VNA.")
         try:
             self.iface = hw.get_interfaces()[vna_index]
             self.iface.open()
@@ -40,7 +40,7 @@ class VNA:
         self.sweep_points = None
         self.calibration = calibration.Calibration()
         self.offset_delay = 0
-        logging.debug("VNA object successfully initialized.")
+        logging.info("VNA successfully initialized.")
 
     def set_sweep(self, start: float, stop: float, points: int):
         """Set the sweep parameters.
