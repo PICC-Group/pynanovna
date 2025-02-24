@@ -1,6 +1,7 @@
 """
 Main module for the pynanovna package.
 """
+
 from .hardware import Hardware as hw
 from .calibration import calibration
 
@@ -355,6 +356,7 @@ class VNA:
             "Minimum Sweep Points": self.vna.sweep_points_min,
             "Interface": str(self.iface),
             "Info": hw.get_info(self.iface),
+            "Comment": hw.get_comment(self.iface),
         }
         return specifications
 
