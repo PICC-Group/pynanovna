@@ -51,7 +51,7 @@ NAME2DEVICE = {
 
 
 def _fix_v2_hwinfo(device):
-    """ The USB Driver for NanoVNA V2 seems to deliver an incompatible 
+    """The USB Driver for NanoVNA V2 seems to deliver an incompatible
         hardware info like: 'PORTS\\VID_04B4&PID_0008\\DEMO'.
         This function will fix it.
 
@@ -75,7 +75,7 @@ def usb_typename(device: ListPortInfo) -> str:
 
 
 def get_interfaces() -> list[Interface]:
-    """ Get list of interfaces with VNAs connected.
+    """Get list of interfaces with VNAs connected.
 
     Returns:
         list[Interface]: List of different serial interfaces.
@@ -106,9 +106,7 @@ def get_VNA(iface: Interface) -> VNABase:
     try:
         return NAME2DEVICE[get_comment(iface)](iface)
     except Exception as e:
-        logger.critical(
-            "Could not get VNA device from serial interface. Error: %s", e
-        )
+        logger.critical("Could not get VNA device from serial interface. Error: %s", e)
         return None
 
 

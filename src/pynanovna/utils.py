@@ -55,6 +55,7 @@ def stream_from_csv(
         logging.critical("Exception when streaming from csv file.", exc_info=e)
         return
 
+
 def get_interfaces() -> object:
     """Get all available interfaces.
 
