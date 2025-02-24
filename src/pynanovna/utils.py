@@ -1,6 +1,7 @@
 """
 Utility functions for pynanovna.
 """
+
 import logging
 import time
 import numpy as np
@@ -53,16 +54,6 @@ def stream_from_csv(
     except Exception as e:
         logging.critical("Exception when streaming from csv file.", exc_info=e)
         return
-
-
-def get_portinfos() -> list[str]:
-    """Get information about communication ports.
-
-    Returns:
-        list: Port information.
-    """
-    return hw.get_portinfos()
-
 
 def get_interfaces() -> object:
     """Get all available interfaces.
