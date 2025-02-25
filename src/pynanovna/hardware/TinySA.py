@@ -27,7 +27,7 @@ class TinySA(VNABase):
     def _get_running_frequencies(self):
         logger.debug("Reading values: frequencies")
         try:
-            frequencies = super().readValues("frequencies")
+            frequencies = super().read_values("frequencies")
             return frequencies[0], frequencies[-1]
         except Exception as e:
             logger.warning("%s reading frequencies", e)
