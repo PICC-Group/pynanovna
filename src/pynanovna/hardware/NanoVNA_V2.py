@@ -156,7 +156,7 @@ class NanoVNA_V2(VNABase):
                 # 7 seconds for 255 points
                 self.serial.timeout = min(pointstodo, 255) * 0.035 + 0.1
                 while pointstodo > 0:
-                    logger.info("reading values")
+                    logger.debug("reading values")
                     pointstoread = min(255, pointstodo)
                     # cmd: read FIFO, addr 0x30
                     self.serial.write(
