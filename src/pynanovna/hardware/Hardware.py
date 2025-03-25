@@ -61,13 +61,10 @@ def _fix_v2_hwinfo(device):
     Returns:
         serial.tools.list_ports.ListPortInfo: Modified serial portinfo object.
     """
-    # if dev.hwid == r'PORTS\VID_04B4&PID_0008\DEMO':
     hwid = device.hwid
-    # Find VID
     vid_index = hwid.find('VID_')
     if vid_index != -1:
         device.vid = int(hwid[vid_index+4:vid_index+8], 16)
-    # Find PID
     pid_index = hwid.find('PID_')
     if pid_index != -1:
         device.pid = int(hwid[pid_index+4:pid_index+8], 16)
