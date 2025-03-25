@@ -62,12 +62,12 @@ def _fix_v2_hwinfo(device):
         serial.tools.list_ports.ListPortInfo: Modified serial portinfo object.
     """
     hwid = device.hwid
-    vid_index = hwid.find('VID_')
+    vid_index = hwid.find("VID_")
     if vid_index != -1:
-        device.vid = int(hwid[vid_index+4:vid_index+8], 16)
-    pid_index = hwid.find('PID_')
+        device.vid = int(hwid[vid_index + 4 : vid_index + 8], 16)
+    pid_index = hwid.find("PID_")
     if pid_index != -1:
-        device.pid = int(hwid[pid_index+4:pid_index+8], 16)
+        device.pid = int(hwid[pid_index + 4 : pid_index + 8], 16)
     return device
 
 
@@ -191,3 +191,19 @@ def get_info(serial_port: serial.Serial, wait: float = 0.05) -> str:
             lines.append(line)
         logger.debug("Info output: %s", lines)
         return "\n".join(lines)
+
+
+def get_portinfos() -> list[str]:
+    logger.critical(
+        "The get_portinfos() function is deprecated and will be removed in the next major update (v2.0). Please use get_interfaces() and detect_version() functions instead."
+    )
+    portinfos = []
+    for d in list_ports.comports():
+        logger.debug("Found USB:(%04x:%04x) on port %s", d.vid, d.pid, d.device)
+        iface = Interface("serial", "DEBUG")
+        iface.port = d.device
+        iface.open()
+        version = detect_version(iface)
+        iface.close()
+        portinfos.append(version)
+    return portinfos
