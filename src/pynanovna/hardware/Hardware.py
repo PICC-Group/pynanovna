@@ -50,17 +50,25 @@ NAME2DEVICE = {
 }
 
 
-# The USB Driver for NanoVNA V2 seems to deliver an
-# incompatible hardware info like:
-# 'PORTS\\VID_04B4&PID_0008\\DEMO'
-# This function will fix it.
+def _fix_v2_hwinfo(device):
+    """The USB Driver for NanoVNA V2 seems to deliver an incompatible
+        hardware info like: 'PORTS\\VID_04B4&PID_0008\\DEMO'.
+        This function will fix it.
 
+    Args:
+        device (serial.tools.list_ports.ListPortInfo): Serial portinfo object.
 
-def _fix_v2_hwinfo(dev):
-    # if dev.hwid == r'PORTS\VID_04B4&PID_0008\DEMO':
-    if r"PORTS\VID_04B4&PID_0008" in dev.hwid:
-        dev.vid, dev.pid = 0x04B4, 0x0008
-    return dev
+    Returns:
+        serial.tools.list_ports.ListPortInfo: Modified serial portinfo object.
+    """
+    hwid = device.hwid
+    vid_index = hwid.find("VID_")
+    if vid_index != -1:
+        device.vid = int(hwid[vid_index + 4 : vid_index + 8], 16)
+    pid_index = hwid.find("PID_")
+    if pid_index != -1:
+        device.pid = int(hwid[pid_index + 4 : pid_index + 8], 16)
+    return device
 
 
 def usb_typename(device: ListPortInfo) -> str:
@@ -70,12 +78,13 @@ def usb_typename(device: ListPortInfo) -> str:
     )
 
 
-# Get list of interfaces with VNAs connected
-
-
 def get_interfaces() -> list[Interface]:
+    """Get list of interfaces with VNAs connected.
+
+    Returns:
+        list[Interface]: List of different serial interfaces.
+    """
     interfaces = []
-    # serial like usb interfaces
     for d in list_ports.comports():
         if platform.system() == "Windows" and d.vid is None:
             d = _fix_v2_hwinfo(d)
@@ -90,36 +99,23 @@ def get_interfaces() -> list[Interface]:
         )
         iface = Interface("serial", typename)
         iface.port = d.device
-        iface.open()
-        iface.comment = get_comment(iface)
-        iface.close()
         interfaces.append(iface)
 
     logger.debug("Interfaces: %s", interfaces)
     return interfaces
 
 
-def get_portinfos() -> list[str]:
-    portinfos = []
-    # serial like usb interfaces
-    for d in list_ports.comports():
-        logger.debug("Found USB:(%04x:%04x) on port %s", d.vid, d.pid, d.device)
-        iface = Interface("serial", "DEBUG")
-        iface.port = d.device
-        iface.open()
-        version = detect_version(iface)
-        iface.close()
-        portinfos.append(version)
-    return portinfos
-
-
 def get_VNA(iface: Interface) -> VNABase:
     # serial_port.timeout = TIMEOUT
-    return NAME2DEVICE[iface.comment](iface)
+    try:
+        return NAME2DEVICE[get_comment(iface)](iface)
+    except Exception as e:
+        logger.critical("Could not get VNA device from serial interface. Error: %s", e)
+        return None
 
 
 def get_comment(iface: Interface) -> str:
-    logger.info("Finding correct VNA type...")
+    logger.debug("Finding correct VNA type...")
     with iface.lock:
         vna_version = detect_version(iface)
 
@@ -195,3 +191,19 @@ def get_info(serial_port: serial.Serial, wait: float = 0.05) -> str:
             lines.append(line)
         logger.debug("Info output: %s", lines)
         return "\n".join(lines)
+
+
+def get_portinfos() -> list[str]:
+    logger.critical(
+        "The get_portinfos() function is deprecated and will be removed in the next major update (v2.0). Please use get_interfaces() and detect_version() functions instead."
+    )
+    portinfos = []
+    for d in list_ports.comports():
+        logger.debug("Found USB:(%04x:%04x) on port %s", d.vid, d.pid, d.device)
+        iface = Interface("serial", "DEBUG")
+        iface.port = d.device
+        iface.open()
+        version = detect_version(iface)
+        iface.close()
+        portinfos.append(version)
+    return portinfos

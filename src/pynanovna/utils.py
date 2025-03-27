@@ -1,6 +1,7 @@
 """
 Utility functions for pynanovna.
 """
+
 import logging
 import time
 import numpy as np
@@ -55,15 +56,6 @@ def stream_from_csv(
         return
 
 
-def get_portinfos() -> list[str]:
-    """Get information about communication ports.
-
-    Returns:
-        list: Port information.
-    """
-    return hw.get_portinfos()
-
-
 def get_interfaces() -> object:
     """Get all available interfaces.
 
@@ -71,3 +63,12 @@ def get_interfaces() -> object:
         list: Interface
     """
     return hw.get_interfaces()
+
+
+def get_portinfos() -> list[str]:
+    """This function is DEPRECATED and will be removed in v2.0.
+        Get information about communication ports.
+    Returns:
+        list: Port information.
+    """
+    return hw.get_portinfos()

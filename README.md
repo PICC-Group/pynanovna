@@ -6,10 +6,11 @@
 
 
 ![PyPI - Version](https://img.shields.io/pypi/v/pynanovna)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/pynanovna)
+[![PyPI Downloads](https://static.pepy.tech/badge/pynanovna/month)](https://pepy.tech/projects/pynanovna)
+[![PyPI Downloads](https://static.pepy.tech/badge/pynanovna)](https://pepy.tech/projects/pynanovna)
 ![PyPI - License](https://img.shields.io/pypi/l/pynanovna)
 [![DOI](https://zenodo.org/badge/791647347.svg)](https://doi.org/10.5281/zenodo.14231110)
-<!-- ![GitHub Repo stars](https://img.shields.io/github/stars/PICC-Group/pynanovna) -->
+
 
 
 This is a Python module for NanoVNA.
