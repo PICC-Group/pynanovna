@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pynanovna"
-version = "1.0.1"
+version = "1.0.2"
 description = "A package to use a NanoVNA"
 authors = ["Teo Bergkvist <bergkvist.teo@protonmail.com>"]
 readme = "README.md"
