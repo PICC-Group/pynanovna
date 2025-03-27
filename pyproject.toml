@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pynanovna"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Teo Bergkvist <bergkvist.teo@protonmail.com>"]
 description = "A package to use a NanoVNA"
 readme = "README.md"
@@ -24,7 +24,7 @@ sphinx-autodoc-typehints = "^2.2.2"
 
 [project]
 name = "pynanovna"
-version = "1.0.0"
+version = "1.0.1"
 authors = [
   { name = "Teo Bergkvist", email = "bergkvist.teo@protonmail.com" },
 ]
