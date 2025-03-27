@@ -1,17 +1,38 @@
 [tool.poetry]
 name = "pynanovna"
-version = "1.0.1"
-authors = ["Teo Bergkvist <bergkvist.teo@protonmail.com>"]
+version = "1.0.2"
 description = "A package to use a NanoVNA"
+authors = ["Teo Bergkvist <bergkvist.teo@protonmail.com>"]
 readme = "README.md"
-packages = [{include = "src"}]
+license = "GPL-3.0-or-later"
+
+# Point to the correct package location
+packages = [{ include = "pynanovna", from = "src" }]
+
+# Optional project metadata
+homepage = "https://github.com/bergkvistteo/pynanovna"
+repository = "https://github.com/bergkvistteo/pynanovna"
+documentation = "https://pynanovna.readthedocs.io"
+
+# Optional but helpful PyPI metadata
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
 
 [tool.poetry.dependencies]
+python = ">=3.9"
 matplotlib = ">=3.6.2"
 numpy = ">=1.26.4"
 pyserial = ">=3.5"
 scipy = ">=1.13.0"
-python = ">=3.9"
 
 [tool.poetry.group.docs]
 optional = true
