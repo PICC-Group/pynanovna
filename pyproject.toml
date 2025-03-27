@@ -21,28 +21,3 @@ sphinx = "^7.3.7"
 sphinx-rtd-theme = "^2.0.0"
 sphinx-autobuild = "^2024.4.16"
 sphinx-autodoc-typehints = "^2.2.2"
-
-[project]
-name = "pynanovna"
-version = "1.0.1"
-authors = [
-  { name = "Teo Bergkvist", email = "bergkvist.teo@protonmail.com" },
-]
-description = "A package to use a NanoVNA"
-readme = "README.md"
-requires-python = ">=3.9"
-dependencies = [
-    "matplotlib >= 3.6.2",
-    "numpy >= 1.26.4",
-    "pyserial >= 3.5",
-    "scipy >= 1.13.0"
-]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-    "Operating System :: OS Independent",
-]
-
-[project.urls]
-Homepage = "https://github.com/PICC-Group/pynanovna"
-Issues = "https://github.com/PICC-Group/pynanovna/issues"
