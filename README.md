@@ -60,7 +60,7 @@ If you use *pynanovna* in your research or project, please cite it as follows:
   year = {2024},
   url = {https://github.com/PICC-Group/pynanovna},
   version = {1.0.2},
-  doi = {10.5281/zenodo.14231111},
+  doi = {10.5281/zenodo.14231110},
 }
 ```
 ## 📜 Licence
