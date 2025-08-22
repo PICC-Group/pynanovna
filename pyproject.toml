@@ -10,8 +10,8 @@ license = "GPL-3.0-or-later"
 packages = [{ include = "pynanovna", from = "src" }]
 
 # Optional project metadata
-homepage = "https://github.com/bergkvistteo/pynanovna"
-repository = "https://github.com/bergkvistteo/pynanovna"
+homepage = "https://github.com/PICC-Group/pynanovna"
+repository = "https://github.com/PICC-Group/pynanovna"
 documentation = "https://pynanovna.readthedocs.io"
 
 # Optional but helpful PyPI metadata
