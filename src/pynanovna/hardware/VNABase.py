@@ -74,11 +74,11 @@ class VNABase:
         sleep(self.wait)
 
     def exec_command(self, command: str, overwrite_wait: float = 0.0) -> Iterator[str]:
-        logger.debug("exec_command(%s)", command)
+        logger.debug("exec_command(%s) wait=%f overwrite_wait=%f", command, self.wait, overwrite_wait)
         with self.serial.lock:
             drain_serial(self.serial)
             self.serial.write(f"{command}\r".encode("ascii"))
-            sleep(min(self.wait, overwrite_wait))
+            sleep(self.wait if overwrite_wait == 0.0 else overwrite_wait)
             retries = 0
             max_retries = _max_retries(self.bandwidth, self.datapoints)
             logger.debug("Max retries: %s", max_retries)
@@ -89,7 +89,7 @@ class VNABase:
                     retries += 1
                     if retries > max_retries:
                         raise IOError("too many retries")
-                    sleep(min(self.wait, overwrite_wait))
+                    sleep(self.wait if overwrite_wait == 0.0 else overwrite_wait)
                     continue
                 if line == command:  # suppress echo
                     continue
