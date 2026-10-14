@@ -10,7 +10,6 @@ class NanoVNA_F_V2(NanoVNA):
     name = "NanoVNA-F_V2"
     screenwidth = 800
     screenheight = 480
-    valid_datapoints = (201, 11, 51, 101)
 
     def __init__(self, iface: Interface):
         super().__init__(iface)
