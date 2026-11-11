@@ -358,7 +358,7 @@ class VNA:
         specifications = {
             "Serial Number": self.vna.SN,
             "Version": str(self.vna.version),
-            "Features": self.vna.features,
+            "Features": self.vna.get_features(),
             "Bandwidth Method": self.vna.bw_method,
             "Bandwidth": self.vna.bandwidth,
             "Valid Datapoints": self.vna.valid_datapoints,

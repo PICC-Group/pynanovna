@@ -1,4 +1,5 @@
 import logging
+import re
 import struct
 from typing import Optional
 
@@ -6,6 +7,7 @@ import numpy as np
 
 from .Serial import drain_serial, Interface
 from .VNABase import VNABase
+from .Version import Version
 
 logger = logging.getLogger(__name__)
 
@@ -103,3 +105,32 @@ class TinySA_Ultra(TinySA):
         self.sweep_max_freq_Hz = 5.4e9
         self._sweepdata = []
         self.validateInput = False
+        self.hardware_revision = self.read_hardware_revision()
+        if self.hardware_revision >= Version("0.5.3"):
+            self.name = "tinySA Ultra+ ZS-407"
+            self.sweep_max_freq_Hz = 7.3e9
+        elif self.hardware_revision >= Version("0.4.6"):
+            self.name = "tinySA Ultra+ ZS-406"
+            self.sweep_max_freq_Hz = 5.4e9
+        elif self.hardware_revision >= Version("0.4.5"):
+            self.name = "tinySA Ultra ZS-405"
+            self.sweep_max_freq_Hz = 5.3e9
+        elif self.hardware_revision > Version("0.0.0"):
+            self.name = "tinySA"
+            self.sweep_max_freq_Hz = 0.96e9
+
+    def read_version(self) -> "Version":
+        result = list(self.exec_command("version"))
+        logger.debug("firmware version result:\n%s", result)
+        match = re.search(r"_v(\d+)\.(\d+)(?:-(\d+))?", result[0])
+        if match is None:
+            return Version(result[0])
+        major, minor, revision = match.groups()
+        return Version(f"{major}.{minor}.{revision or 0}")
+
+    def read_hardware_revision(self) -> "Version":
+        result = list(self.exec_command("version"))
+        logger.debug("hardware version result:\n%s", result)
+        if len(result) < 2:
+            return Version("0.0.0")
+        return Version(result[1])

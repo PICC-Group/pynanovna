@@ -9,9 +9,11 @@ from serial.tools.list_ports_common import ListPortInfo
 
 from .VNABase import VNABase
 from .AVNA import AVNA
+from .LiteVNA64 import LiteVNA64
 from .NanoVNA import NanoVNA
 from .NanoVNA_F import NanoVNA_F
 from .NanoVNA_F_V2 import NanoVNA_F_V2
+from .NanoVNA_F_V3 import NanoVNA_F_V3
 from .NanoVNA_H import NanoVNA_H
 from .NanoVNA_H4 import NanoVNA_H4
 from .NanoVNA_V2 import NanoVNA_V2
@@ -39,6 +41,7 @@ NAME2DEVICE = {
     "H4": NanoVNA_H4,
     "H": NanoVNA_H,
     "F_V2": NanoVNA_F_V2,
+    "F_V3": NanoVNA_F_V3,
     "F": NanoVNA_F,
     "NanoVNA": NanoVNA,
     "tinySA": TinySA,
@@ -46,6 +49,7 @@ NAME2DEVICE = {
     "JNCRadio": JNCRadio_VNA_3G,
     "SV4401A": SV4401A,
     "SV6301A": SV6301A,
+    "LiteVNA64": LiteVNA64,
     "Unknown": NanoVNA,
 }
 
@@ -118,6 +122,8 @@ def get_comment(iface: Interface) -> str:
     logger.debug("Finding correct VNA type...")
     with iface.lock:
         vna_version = detect_version(iface)
+        if vna_version == "v2" and LiteVNA64.is_lite_vna_64(iface):
+            return "LiteVNA64"
 
     if vna_version == "v2":
         return "S-A-A-2"
@@ -129,6 +135,7 @@ def get_comment(iface: Interface) -> str:
         ("NanoVNA-H 4", "H4"),
         ("NanoVNA-H", "H"),
         ("NanoVNA-F_V2", "F_V2"),
+        ("NanoVNA-F_V3", "F_V3"),
         ("NanoVNA-F", "F"),
         ("NanoVNA", "NanoVNA"),
         ("tinySA4", "tinySA_Ultra"),
