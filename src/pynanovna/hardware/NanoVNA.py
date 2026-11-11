@@ -1,5 +1,6 @@
 import logging
 import struct
+from typing import Optional
 
 import numpy as np
 
@@ -93,9 +94,9 @@ class NanoVNA(VNABase):
             )
         ]
 
-    def read_values(self, value, overwrite_wait: float = 0.0) -> list[str]:
+    def read_values(self, value, overwrite_wait: Optional[float] = None) -> list[str]:
         if self.sweep_method != "scan_mask":
-            return super().read_values(value)
+            return super().read_values(value, overwrite_wait)
         logger.debug("readValue with scan mask (%s)", value)
         # Actually grab the data only when requesting channel 0.
         # The hardware will return all channels which we will store.
@@ -103,7 +104,7 @@ class NanoVNA(VNABase):
             self._sweepdata = []
             for line in self.exec_command(
                 f"scan {self.start} {self.stop} {self.datapoints} 0b110",
-                min(self.wait, overwrite_wait),
+                overwrite_wait,
             ):
                 data = line.split()
                 self._sweepdata.append((f"{data[0]} {data[1]}", f"{data[2]} {data[3]}"))

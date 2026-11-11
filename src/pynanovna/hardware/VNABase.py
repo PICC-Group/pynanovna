@@ -1,6 +1,6 @@
 import logging
 from time import sleep
-from typing import Iterator
+from typing import Iterator, Optional
 
 from .Version import Version
 from .Serial import Interface, drain_serial
@@ -73,12 +73,18 @@ class VNABase:
         self.connect()
         sleep(self.wait)
 
-    def exec_command(self, command: str, overwrite_wait: float = 0.0) -> Iterator[str]:
-        logger.debug("exec_command(%s)", command)
+    def _get_wait(self, overwrite_wait: Optional[float] = None) -> float:
+        return self.wait if overwrite_wait is None else overwrite_wait
+
+    def exec_command(
+        self, command: str, overwrite_wait: Optional[float] = None
+    ) -> Iterator[str]:
+        wait = self._get_wait(overwrite_wait)
+        logger.debug("exec_command(%s) wait=%s", command, wait)
         with self.serial.lock:
             drain_serial(self.serial)
             self.serial.write(f"{command}\r".encode("ascii"))
-            sleep(min(self.wait, overwrite_wait))
+            sleep(wait)
             retries = 0
             max_retries = _max_retries(self.bandwidth, self.datapoints)
             logger.debug("Max retries: %s", max_retries)
@@ -89,7 +95,7 @@ class VNABase:
                     retries += 1
                     if retries > max_retries:
                         raise IOError("too many retries")
-                    sleep(min(self.wait, overwrite_wait))
+                    sleep(wait)
                     continue
                 if line == command:  # suppress echo
                     continue
@@ -170,9 +176,9 @@ class VNABase:
         logger.debug("result:\n%s", result)
         return result
 
-    def read_values(self, value, overwrite_wait: float = 0.0) -> list[str]:
+    def read_values(self, value, overwrite_wait: Optional[float] = None) -> list[str]:
         logger.debug("VNA reading %s", value)
-        result = list(self.exec_command(value, min(self.wait, overwrite_wait)))
+        result = list(self.exec_command(value, overwrite_wait))
         logger.debug("VNA done reading %s (%d values)", value, len(result))
         return result
 
