@@ -225,8 +225,6 @@ class NanoVNA_V2(VNABase):
 
     def set_sweep(self, start, stop):
         step = (stop - start) / (self.datapoints - 1)
-        if start == self.sweep_start_Hz and step == self.sweep_step_Hz:
-            return
         self.sweep_start_Hz = start
         self.sweep_step_Hz = step
         logger.info(

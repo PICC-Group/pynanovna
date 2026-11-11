@@ -18,6 +18,12 @@ class SV4401A(NanoVNA):
         super().__init__(iface)
         self.sweep_max_freq_Hz = 4.4e9
 
+    def read_features(self):
+        super().read_features()
+        self.features.discard("Scan mask command")
+        self.features.add("Scan command")
+        self.sweep_method = "scan"
+
     def set_sweep(self, start, stop):
         self.start = start
         self.stop = stop

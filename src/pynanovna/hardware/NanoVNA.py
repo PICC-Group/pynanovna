@@ -96,6 +96,8 @@ class NanoVNA(VNABase):
 
     def read_values(self, value, overwrite_wait: Optional[float] = None) -> list[str]:
         if self.sweep_method != "scan_mask":
+            if self.sweep_method == "scan" and value == "data 0":
+                self.set_sweep(self.start, self.stop)
             return super().read_values(value, overwrite_wait)
         logger.debug("readValue with scan mask (%s)", value)
         # Actually grab the data only when requesting channel 0.
