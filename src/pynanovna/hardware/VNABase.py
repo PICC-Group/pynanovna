@@ -107,9 +107,10 @@ class VNABase:
     def read_features(self):
         result = " ".join(self.exec_command("help")).split()
         logger.debug("result:\n%s", result)
-        if "sn:" in result:
+        sn_command = next((word[:-1] for word in result if word.lower() == "sn:"), None)
+        if sn_command:
             self.features.add("SN")
-            self.SN = self.get_serial_number()
+            self.SN = self.get_serial_number(sn_command)
         if "bandwidth" in result:
             self.features.add("Bandwidth")
             result = " ".join(list(self.exec_command("bandwidth")))
@@ -193,8 +194,8 @@ class VNABase:
     def set_TX_power(self, freq_range, power_desc):
         raise NotImplementedError()
 
-    def get_serial_number(self) -> str:
-        return " ".join(list(self.exec_command("sn")))
+    def get_serial_number(self, command: str = "sn") -> str:
+        return " ".join(list(self.exec_command(command)))
 
     def set_wait(self, new_wait: float):
         if new_wait < 0.05:

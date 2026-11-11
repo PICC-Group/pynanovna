@@ -24,9 +24,3 @@ class NanoVNA_F_V2(NanoVNA):
         elif self.version < Version("0.5.0"):
             self.valid_datapoints = (101, 11, 51, 201)
             self.sweep_points_max = 201
-
-    def read_features(self):
-        super().read_features()
-        if "SN:" in " ".join(self.exec_command("help")).split():
-            self.features.add("SN")
-            self.SN = " ".join(self.exec_command("SN"))

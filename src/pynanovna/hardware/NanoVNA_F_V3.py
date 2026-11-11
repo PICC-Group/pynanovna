@@ -17,9 +17,3 @@ class NanoVNA_F_V3(NanoVNA):
     def __init__(self, iface: Interface):
         super().__init__(iface)
         self.sweep_max_freq_Hz = 6.3e9
-
-    def read_features(self):
-        super().read_features()
-        if "SN:" in " ".join(self.exec_command("help")).split():
-            self.features.add("SN")
-            self.SN = " ".join(self.exec_command("SN"))
