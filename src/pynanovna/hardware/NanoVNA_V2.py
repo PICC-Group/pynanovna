@@ -2,6 +2,7 @@ import logging
 import platform
 from struct import pack, unpack_from
 from time import sleep
+from typing import Optional
 
 from .Serial import Interface
 from .VNABase import VNABase
@@ -135,19 +136,20 @@ class NanoVNA_V2(VNABase):
 
         logger.debug("Freq index to: %i", freq_index)
 
-    def read_values(self, value, overwrite_wait: float = 0.0) -> list[str]:
+    def read_values(self, value, overwrite_wait: Optional[float] = None) -> list[str]:
         # Actually grab the data only when requesting channel 0.
         # The hardware will return all channels which we will store.
         if value == "data 0":
+            wait = self._get_wait(overwrite_wait)
             s21hack = 1 if "S21 hack" in self.features else 0
             # reset protocol to known state
             timeout = self.serial.timeout
             with self.serial.lock:
                 self.serial.write(pack("<Q", 0))
-                sleep(min(self.wait, overwrite_wait))
+                sleep(wait)
                 # cmd: write register 0x30 to clear FIFO
                 self.serial.write(pack("<BBB", _CMD_WRITE, _ADDR_VALUES_FIFO, 0))
-                sleep(min(self.wait, overwrite_wait))
+                sleep(wait)
                 # clear sweepdata
                 self._sweepdata = [(complex(), complex())] * (self.datapoints + s21hack)
                 pointstodo = self.datapoints + s21hack
@@ -167,7 +169,7 @@ class NanoVNA_V2(VNABase):
                             pointstoread,
                         )
                     )
-                    sleep(min(self.wait, overwrite_wait))
+                    sleep(wait)
                     # each value is 32 bytes
                     nBytes = pointstoread * 32
 

@@ -8,6 +8,7 @@ from .calibration import calibration
 import logging
 import numpy as np
 import csv
+from typing import Optional
 
 
 class VNA:
@@ -67,36 +68,44 @@ class VNA:
 
     def sweep(
         self,
-        overwrite_wait: float = 0.05,
+        overwrite_wait: Optional[float] = None,
     ) -> tuple[list[complex], list[complex], list[int]]:
         """Run a single sweep and return the data.
 
         Args:
             overwrite_wait: Do not change if you don't know what youre doing.
-                            This can be used to lower the wait in the hardware functions.
+                            Overrides the wait between serial reads in the hardware functions.
+                            Defaults to None, which uses the hardware default.
 
         Returns:
             tuple: s11, s21, frequencies
         """
         frequencies = np.array(self.vna.read_frequencies())
         data0 = np.array(
-            [complex(*map(float, s.split())) for s in self.vna.read_values("data 0")]
+            [
+                complex(*map(float, s.split()))
+                for s in self.vna.read_values("data 0", overwrite_wait)
+            ]
         )
         data1 = np.array(
-            [complex(*map(float, s.split())) for s in self.vna.read_values("data 1")]
+            [
+                complex(*map(float, s.split()))
+                for s in self.vna.read_values("data 1", overwrite_wait)
+            ]
         )
         s11, s21 = self._apply_calibration(data0, data1, frequencies)
         return s11, s21, frequencies
 
     def stream(
         self,
-        overwrite_wait: float = 0.05,
+        overwrite_wait: Optional[float] = None,
     ) -> tuple[list[complex], list[complex], list[int]]:
         """Creates a data stream from the continuous sweeping.
 
         Args:
             overwrite_wait: Do not change if you don't know what youre doing.
-                            This can be used to lower the wait in the hardware functions.
+                            Overrides the wait between serial reads in the hardware functions.
+                            Defaults to None, which uses the hardware default.
 
         Yields:
             tuple: Yields a list of data when new data is available. Each datapoint: (s11, s21, frequencies)
@@ -107,8 +116,8 @@ class VNA:
 
         while True:
             try:
-                raw_data0 = self.vna.read_values("data 0")
-                raw_data1 = self.vna.read_values("data 1")
+                raw_data0 = self.vna.read_values("data 0", overwrite_wait)
+                raw_data1 = self.vna.read_values("data 1", overwrite_wait)
 
                 data0 = np.array(
                     [complex(*map(float, s.split())) for s in raw_data0]
